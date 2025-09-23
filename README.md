@@ -201,12 +201,6 @@ npm audit fix
 - Use `.env` files for configuration
 - Validate environment variables at startup
 
-#### Available Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `PLAYWRIGHT_SCREENSHOTS_ENABLED` | Controls whether Playwright captures screenshots during errors for debugging purposes. Set to `false` to disable screenshots. | `true` |
-
 ## 📊 Code Quality Standards
 
 ### TypeScript Configuration
@@ -246,7 +240,7 @@ npm run build
 
 ### AWS Lambda Deployment
 
-#### Option 1: ZIP Package Deployment (Traditional)
+#### ZIP Package Deployment
 
 ```bash
 # Create AWS Lambda deployment package as a ZIP file
@@ -261,36 +255,7 @@ npm run package:lambda
 # The lambda.zip file is ready to be uploaded to AWS Lambda
 ```
 
-#### Option 2: Docker Container Image (Recommended for Browser Automation)
-
-```bash
-# Build Docker container image for Lambda
-npm run package:docker
-
-# Test the Docker image locally
-npm run package:docker:run
-
-# Test function invocation with a sample event
-npm run package:docker:test
-
-# Push the image to Amazon ECR (requires AWS credentials)
-export AWS_ACCOUNT_ID=12345678991311
-export AWS_REGION=eu-central-1
-npm run package:docker:push
-```
-
-For detailed instructions on both deployment methods, see [Lambda Packaging Documentation](docs/lambda-packaging-docker.md).
-
-### Environment Configuration
-
-Set production environment variables:
-
-```bash
-NODE_ENV=production
-API_URL=https://api.yourdomain.com
-DATABASE_URL=postgresql://user:pass@prod-db:5432/app
-SECRET_KEY=your-production-secret
-```
+For detailed instructions, see [Lambda Packaging Documentation](docs/lambda-packaging.md).
 
 ## 🤝 Contributing
 

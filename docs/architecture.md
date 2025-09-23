@@ -6,8 +6,6 @@ This TypeScript project follows a layered architecture pattern with clear separa
 
 ```
 ┌─────────────────┐
-│   Components    │  (Presentation Layer)
-├─────────────────┤
 │    Services     │  (Business Logic Layer)
 ├─────────────────┤
 │   Utilities     │  (Helper Functions)

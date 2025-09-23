@@ -1,93 +1,91 @@
 import { handler } from '../src/index';
-import { runBrowserAutomation } from '../src/browser-automation';
+import { TelegramService } from '../src/services/telegram.service';
+import type { ApiGatewayProxyEvent, TelegramSentMessage } from '../src/types/telegram';
 
-// Mock the runBrowserAutomation function
-jest.mock('../src/browser-automation', () => ({
-  runBrowserAutomation: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock('../src/services/telegram.service');
 
-describe('AWS Lambda Handler', () => {
-  let consoleLogSpy: jest.SpyInstance;
-  let consoleErrorSpy: jest.SpyInstance;
-  const mockRunBrowserAutomation = runBrowserAutomation as jest.MockedFunction<
-    typeof runBrowserAutomation
-  >;
-
+describe('Lambda Telegram Webhook Handler', () => {
   beforeEach(() => {
-    // Clear all mocks
-    jest.clearAllMocks();
-
-    // Spy on console methods
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    jest.resetAllMocks();
+    // Default env
+    process.env.TELEGRAM_BOT_TOKEN = 'TEST_TOKEN';
   });
 
-  afterEach(() => {
-    consoleLogSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
+  it('returns 500 when TELEGRAM_BOT_TOKEN is missing', async () => {
+    delete process.env.TELEGRAM_BOT_TOKEN;
+    const event: ApiGatewayProxyEvent = {
+      body: '{}',
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(500);
   });
 
-  it('should invoke runBrowserAutomation and return success response', async () => {
-    // Arrange
-    const mockEvent = { key: 'value' };
+  it('returns 200 on invalid JSON', async () => {
+    const event: ApiGatewayProxyEvent = {
+      body: '{',
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(200);
+    const parsed: { success: boolean } = JSON.parse(res.body) as { success: boolean };
+    expect(parsed.success).toBe(true);
+  });
 
-    // Act
-    const result = await handler(mockEvent);
+  it('returns 200 on invalid structure', async () => {
+    const event: ApiGatewayProxyEvent = {
+      body: JSON.stringify({ foo: 'bar' }),
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(200);
+  });
 
-    // Assert
-    expect(mockRunBrowserAutomation).toHaveBeenCalled();
-    expect(result).toEqual({
-      statusCode: 200,
-      body: JSON.stringify({ message: 'Browser automation completed successfully' }),
+  it('ignores non-message updates', async () => {
+    const update = { update_id: 1234 };
+    const event: ApiGatewayProxyEvent = {
+      body: JSON.stringify(update),
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('processes message updates and calls TelegramService', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 1, type: 'private' }, date: 0 } as TelegramSentMessage,
     });
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      'AWS Lambda handler invoked with event:',
-      JSON.stringify(mockEvent)
-    );
+    const update = {
+      update_id: 1,
+      message: {
+        message_id: 2,
+        chat: { id: 123, type: 'private' },
+        date: 0,
+        from: { id: 9, first_name: 'John' },
+        text: 'Hi',
+      },
+    };
+    const event: ApiGatewayProxyEvent = {
+      body: JSON.stringify(update),
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(200);
+    expect(sendMock).toHaveBeenCalled();
   });
 
-  it('should handle errors and return error response', async () => {
-    // Arrange
-    const mockEvent = { key: 'value' };
-    const mockError = new Error('Test error');
-    mockRunBrowserAutomation.mockRejectedValueOnce(mockError);
-
-    // Act
-    const result = await handler(mockEvent);
-
-    // Assert
-    expect(mockRunBrowserAutomation).toHaveBeenCalled();
-    expect(result).toEqual({
-      statusCode: 500,
-      body: JSON.stringify({
-        message: 'Error during browser automation',
-        error: 'Test error',
-      }),
-    });
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error during browser automation:', 'Test error');
-  });
-
-  it('should handle non-Error objects and return error response', async () => {
-    // Arrange
-    const mockEvent = { key: 'value' };
-    const mockError = 'String error';
-    mockRunBrowserAutomation.mockRejectedValueOnce(mockError);
-
-    // Act
-    const result = await handler(mockEvent);
-
-    // Assert
-    expect(mockRunBrowserAutomation).toHaveBeenCalled();
-    expect(result).toEqual({
-      statusCode: 500,
-      body: JSON.stringify({
-        message: 'Error during browser automation',
-        error: 'String error',
-      }),
-    });
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Error during browser automation:',
-      'String error'
-    );
+  it('returns 200 when TelegramService fails (to prevent retries)', async () => {
+    jest.spyOn(TelegramService, 'sendMessage').mockRejectedValue(new Error('net'));
+    const update = {
+      update_id: 1,
+      message: { message_id: 2, chat: { id: 123, type: 'private' }, date: 0 },
+    };
+    const event: ApiGatewayProxyEvent = {
+      body: JSON.stringify(update),
+      headers: null,
+    } as unknown as ApiGatewayProxyEvent;
+    const res = await handler(event);
+    expect(res.statusCode).toBe(200);
   });
 });

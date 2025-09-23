@@ -7,7 +7,6 @@
     "start": "node dist/index.js",
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "playwright": "ts-node src/browser-automation.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -20,11 +19,7 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "dist": "npm run build && cp package.json package-lock.json dist/ && cd dist && npm install --production --ignore-scripts",
-    "package:lambda": "npm run build && cp package.json package-lock.json dist/ && cd dist && npm install --production --ignore-scripts && zip -r ../lambda.zip .",
-    "package:docker": "npm run dist && docker build --platform linux/arm64 -t qlibin/browser-lambda:latest .",
-    "package:docker:run": "docker run -p 9000:8080 qlibin/browser-lambda:latest",
-    "package:docker:test": "curl -XPOST \"http://localhost:9000/2015-03-31/functions/function/invocations\" -d '{\"key1\":\"value1\",\"key2\":\"value2\",\"key3\":\"value3\"}'",
-    "package:docker:push": "aws ecr get-login-password --region $AWS_REGION| docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com && docker tag qlibin/browser-lambda:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/qlibin/browser-lambda:latest && docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/qlibin/browser-lambda:latest"
+    "package:lambda": "npm run build && cp package.json package-lock.json dist/ && cd dist && npm install --production --ignore-scripts && zip -r ../lambda.zip ."
   },
   "keywords": [
     "typescript",
