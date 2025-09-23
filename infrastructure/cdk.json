@@ -1,0 +1,41 @@
+{
+  "app": "node --loader ts-node/esm bin/browser-lambda.ts",
+  "context": {
+    "environments": {
+      "dev": {
+        "account": "182399716679",
+        "region": "eu-central-1",
+        "envName": "dev",
+        "ecrRepoName": "qlibin/browser-lambda",
+        "lambdaName": "browser-lambda-dev",
+        "tags": {
+          "app": "browser-lambda",
+          "env": "dev"
+        }
+      },
+      "test": {
+        "account": "182399716679",
+        "region": "eu-central-1",
+        "envName": "test",
+        "ecrRepoName": "qlibin/browser-lambda",
+        "lambdaName": "browser-lambda-test",
+        "tags": {
+          "app": "browser-lambda",
+          "env": "test"
+        }
+      },
+      "prod": {
+        "account": "182399716679",
+        "region": "eu-central-1",
+        "envName": "prod",
+        "ecrRepoName": "qlibin/browser-lambda",
+        "lambdaName": "browser-lambda",
+        "tags": {
+          "app": "browser-lambda",
+          "env": "prod"
+        }
+      }
+    },
+    "defaultEnvironment": "dev"
+  }
+}
