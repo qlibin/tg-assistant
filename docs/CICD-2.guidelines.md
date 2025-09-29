@@ -38,11 +38,6 @@ CDK-Specific Rules
     - IAM policies must follow least privilege. Prefer managed policies where appropriate and narrow ARNs in inline policies.
     - Avoid hardcoding ARNs; derive from constructs when possible.
 
-- Docker/ECR/Lambda (if applicable)
-    - Lambda image/tag must be configurable via CDK context (e.g., -c imageTag=<digest-or-tag>).
-    - Support “immutable” deploys via image digest or SHA tag. Avoid relying on latest for production.
-    - Do not embed secrets; use AWS-managed mechanisms and environment variables only for non-sensitive config.
-
 - Synthesis/Bootstrap/Deploy
     - npm run synth must succeed without side effects (no external calls).
     - Do not commit artifacts from synthesis (e.g., cdk.out) or .jsii/.cache.
@@ -79,7 +74,6 @@ Change Management Rules
 - Minimize blast radius: prefer localized changes in lib/ and corresponding tests.
 - If changing context schema (cdk.json), update bin/ parsing and tests that assert naming/tagging/environment behavior.
 - If modifying IAM, add or update tests to validate permissions narrowing.
-- If changing Lambda or ECR integration, ensure image tag/digest flow is adjustable via context and covered by tests.
 
 Operational Conventions
 - Naming pattern: <resource>-<env> (e.g., browser-lambda-dev).
