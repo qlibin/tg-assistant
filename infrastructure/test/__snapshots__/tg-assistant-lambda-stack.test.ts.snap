@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapshot) 1`] = `
+exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected CloudFormation template (snapshot) 1`] = `
 {
   "Description": "Test stack",
   "Outputs": {
@@ -17,9 +17,6 @@ exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapsh
         "Ref": "Function76856677",
       },
     },
-    "ImageUri": {
-      "Value": "123456789012.dkr.ecr.us-east-1.amazonaws.com/qlibin/browser-lambda:sha-abc",
-    },
   },
   "Parameters": {
     "BootstrapVersion": {
@@ -31,7 +28,6 @@ exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapsh
   "Resources": {
     "Function76856677": {
       "DependsOn": [
-        "LambdaExecutionRoleDefaultPolicy6D69732F",
         "LambdaExecutionRoleD5C26073",
       ],
       "Properties": {
@@ -39,33 +35,24 @@ exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapsh
           "arm64",
         ],
         "Code": {
-          "ImageUri": {
-            "Fn::Join": [
-              "",
-              [
-                "123456789012.dkr.ecr.us-east-1.",
-                {
-                  "Ref": "AWS::URLSuffix",
-                },
-                "/qlibin/browser-lambda:sha-abc",
-              ],
-            ],
-          },
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "1ebc9d3ac2033816c4abb63e4afd69d350b4aba8704cc9236b82ea520b74f4b0.zip",
         },
         "Environment": {
           "Variables": {
             "NODE_ENV": "production",
           },
         },
-        "FunctionName": "browser-lambda-dev",
+        "FunctionName": "telegram-webhook-lambda-dev",
+        "Handler": "dist/index.handler",
         "MemorySize": 1024,
-        "PackageType": "Image",
         "Role": {
           "Fn::GetAtt": [
             "LambdaExecutionRoleD5C26073",
             "Arn",
           ],
         },
+        "Runtime": "nodejs22.x",
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
@@ -107,7 +94,7 @@ exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapsh
           ],
           "Version": "2012-10-17",
         },
-        "Description": "Execution role for browser-lambda to pull from ECR and write logs",
+        "Description": "Execution role for Lambda to write logs",
         "ManagedPolicyArns": [
           {
             "Fn::Join": [
@@ -122,50 +109,9 @@ exports[`BrowserLambdaStack synthesizes expected CloudFormation template (snapsh
             ],
           },
         ],
-        "RoleName": "browser-lambda-role-dev",
+        "RoleName": "telegram-webhook-lambda-role-dev",
       },
       "Type": "AWS::IAM::Role",
-    },
-    "LambdaExecutionRoleDefaultPolicy6D69732F": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": "ecr:GetAuthorizationToken",
-              "Effect": "Allow",
-              "Resource": "*",
-            },
-            {
-              "Action": [
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:GetDownloadUrlForLayer",
-                "ecr:BatchGetImage",
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    {
-                      "Ref": "AWS::Partition",
-                    },
-                    ":ecr:us-east-1:123456789012:repository/qlibin/browser-lambda",
-                  ],
-                ],
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "LambdaExecutionRoleDefaultPolicy6D69732F",
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRoleD5C26073",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
     },
     "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
       "DependsOn": [
