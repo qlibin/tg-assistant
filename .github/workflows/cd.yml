@@ -5,12 +5,11 @@ on:
     branches: [ "main" ]
 
 concurrency:
-  group: browser-lambda-${{ github.ref_name }}
+  group: lambda-zip-${{ github.ref_name }}
   cancel-in-progress: true
 
 env:
   AWS_REGION: eu-central-1
-  ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
   ENV_NAME: dev
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   RUN_BOOTSTRAP: ${{ vars.RUN_BOOTSTRAP || 'false' }}
@@ -70,24 +69,14 @@ jobs:
         working-directory: infrastructure
         run: npm run test
 
-  package-and-push-image:
-    runs-on: ubuntu-24.04-arm
+  package-zip:
+    runs-on: ubuntu-latest
     needs: build-validate-test
     permissions:
-      id-token: write
       contents: read
-    outputs:
-      image_tag: ${{ steps.meta.outputs.image_tag }}
-      image_digest: ${{ steps.resolve_digest.outputs.image_digest }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/GithubActionsDeploymentRole
-          aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -95,49 +84,23 @@ jobs:
           node-version: "20.x"
           cache: "npm"
 
-      - name: Login to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Set image tags
-        id: meta
-        run: |
-          echo "image_tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - name: Build and package ZIP
+        run: npm run package:lambda
 
-      - name: Build image
-        run: |
-          npm ci
-          npm run dist
-          docker build --platform linux/arm64 \
-            -t $ECR_REPOSITORY:latest \
-            -t $ECR_REPOSITORY:${{ steps.meta.outputs.image_tag }} .
-
-      - name: Tag with account registry
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          docker tag $ECR_REPOSITORY:latest $REGISTRY/$ECR_REPOSITORY:latest
-          docker tag $ECR_REPOSITORY:${{ steps.meta.outputs.image_tag }} $REGISTRY/$ECR_REPOSITORY:${{ steps.meta.outputs.image_tag }}
-          echo "REGISTRY=$REGISTRY" >> $GITHUB_ENV
-
-      - name: Push images
-        run: |
-          docker push $REGISTRY/$ECR_REPOSITORY:latest
-          docker push $REGISTRY/$ECR_REPOSITORY:${{ steps.meta.outputs.image_tag }}
-
-      - name: Resolve image digest for SHA tag
-        id: resolve_digest
-        run: |
-          DIGEST=$(aws ecr describe-images \
-            --repository-name "$ECR_REPOSITORY" \
-            --image-ids imageTag=${{ steps.meta.outputs.image_tag }} \
-            --query 'imageDetails[0].imageDigest' \
-            --output text)
-          echo "image_digest=$DIGEST" >> "$GITHUB_OUTPUT"
+      - name: Upload lambda.zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-zip
+          path: lambda.zip
+          if-no-files-found: error
+          retention-days: 7
 
   cdk-deploy:
     runs-on: ubuntu-latest
-    needs: package-and-push-image
+    needs: package-zip
     environment: dev
     permissions:
       id-token: write
@@ -145,6 +108,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Download lambda.zip artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-zip
+          path: infrastructure/assets
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -167,10 +136,7 @@ jobs:
         working-directory: infrastructure
         env:
           CDK_NEW_BOOTSTRAP: "1"
-        run: |
-          npx cdk bootstrap \
-            --qualifier bl${{ env.ENV_NAME }} \
-            aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
+        run: npx cdk bootstrap aws://${{ env.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }}
 
       - name: Skip bootstrap (pre-bootstrapped account)
         if: env.RUN_BOOTSTRAP != 'true'
@@ -179,9 +145,7 @@ jobs:
       - name: CDK Deploy
         working-directory: infrastructure
         env:
-          IMAGE_TAG: ${{ needs.package-and-push-image.outputs.image_digest }}
           ENV_NAME: ${{ env.ENV_NAME }}
+          LAMBDA_ZIP_PATH: "./assets/lambda.zip"
         run: |
-          npx cdk deploy --require-approval never \
-            -c environment=${ENV_NAME} \
-            -c imageTag=${IMAGE_TAG}
+          npx cdk deploy --require-approval never -c environment=${ENV_NAME}

@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 import 'source-map-support/register.js';
 import * as cdk from 'aws-cdk-lib';
-import { BrowserLambdaStack } from '../lib/browser-lambda-stack.js';
+import { TgAssistantLambdaStack } from '../lib/tg-assistant-lambda-stack.js';
 
 interface EnvConfig {
   account: string;
   region: string;
   envName: string;
-  ecrRepoName: string;
   lambdaName: string;
   tags?: Record<string, string>;
 }
@@ -18,8 +17,6 @@ const environmentName =
   (app.node.tryGetContext('environment') as string | undefined) ??
   (app.node.tryGetContext('ENV_NAME') as string | undefined) ??
   undefined;
-
-const imageTag = (app.node.tryGetContext('imageTag') as string | undefined) ?? 'latest';
 
 // Direct context reads without workarounds
 const environments = app.node.tryGetContext('environments') as
@@ -47,15 +44,13 @@ if (providedAccountId && providedAccountId !== envCfg.account) {
   );
 }
 
-const stack = new BrowserLambdaStack(app, `BrowserLambdaStack-${envCfg.envName}`, {
+const stack = new TgAssistantLambdaStack(app, `TgAssistantLambdaStack-${envCfg.envName}`, {
   env: { account: envCfg.account, region: envCfg.region },
-  description: `Browser Lambda (${envCfg.envName}) from ECR image`,
+  description: `TG Assistant Lambda (${envCfg.envName}) from ZIP asset`,
   environmentName: envCfg.envName,
-  ecrRepoName: envCfg.ecrRepoName,
   lambdaName: envCfg.lambdaName,
-  imageTag,
   tags: envCfg.tags ?? {},
 });
 
-cdk.Tags.of(stack).add('app', 'browser-lambda');
+cdk.Tags.of(stack).add('app', 'telegram-webhook');
 cdk.Tags.of(stack).add('env', envCfg.envName);

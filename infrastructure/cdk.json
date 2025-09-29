@@ -1,15 +1,14 @@
 {
-  "app": "node --loader ts-node/esm bin/browser-lambda.ts",
+  "app": "node --loader ts-node/esm bin/tg-assistant-lambda.ts",
   "context": {
     "environments": {
       "dev": {
         "account": "182399716679",
         "region": "eu-central-1",
         "envName": "dev",
-        "ecrRepoName": "qlibin/browser-lambda",
-        "lambdaName": "browser-lambda-dev",
+        "lambdaName": "telegram-webhook-lambda-dev",
         "tags": {
-          "app": "browser-lambda",
+          "app": "telegram-webhook",
           "env": "dev"
         }
       },
@@ -17,10 +16,9 @@
         "account": "182399716679",
         "region": "eu-central-1",
         "envName": "test",
-        "ecrRepoName": "qlibin/browser-lambda",
-        "lambdaName": "browser-lambda-test",
+        "lambdaName": "telegram-webhook-lambda-test",
         "tags": {
-          "app": "browser-lambda",
+          "app": "telegram-webhook",
           "env": "test"
         }
       },
@@ -28,10 +26,9 @@
         "account": "182399716679",
         "region": "eu-central-1",
         "envName": "prod",
-        "ecrRepoName": "qlibin/browser-lambda",
-        "lambdaName": "browser-lambda",
+        "lambdaName": "telegram-webhook-lambda",
         "tags": {
-          "app": "browser-lambda",
+          "app": "telegram-webhook",
           "env": "prod"
         }
       }
