@@ -17,6 +17,11 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         "Ref": "Function76856677",
       },
     },
+    "TelegramWebhookSecretArn": {
+      "Value": {
+        "Ref": "TelegramWebhookSecret2F3DC73E",
+      },
+    },
   },
   "Parameters": {
     "BootstrapVersion": {
@@ -28,6 +33,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
   "Resources": {
     "Function76856677": {
       "DependsOn": [
+        "LambdaExecutionRoleDefaultPolicy6D69732F",
         "LambdaExecutionRoleD5C26073",
       ],
       "Properties": {
@@ -41,6 +47,9 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         "Environment": {
           "Variables": {
             "NODE_ENV": "production",
+            "TELEGRAM_WEBHOOK_SECRET_ARN": {
+              "Ref": "TelegramWebhookSecret2F3DC73E",
+            },
           },
         },
         "FunctionName": "telegram-webhook-lambda-dev",
@@ -112,6 +121,32 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         "RoleName": "telegram-webhook-lambda-role-dev",
       },
       "Type": "AWS::IAM::Role",
+    },
+    "LambdaExecutionRoleDefaultPolicy6D69732F": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "TelegramWebhookSecret2F3DC73E",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "LambdaExecutionRoleDefaultPolicy6D69732F",
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRoleD5C26073",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
     "LogRetentionaae0aa3c5b4d4f87b02d85b201efdd8aFD4BFC8A": {
       "DependsOn": [
@@ -189,6 +224,21 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         ],
       },
       "Type": "AWS::IAM::Policy",
+    },
+    "TelegramWebhookSecret2F3DC73E": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": "Telegram webhook secret used to validate updates",
+        "GenerateSecretString": {
+          "ExcludePunctuation": true,
+          "GenerateStringKey": "webhookSecret",
+          "PasswordLength": 32,
+          "SecretStringTemplate": "{}",
+        },
+        "Name": "/tg-assistant/telegram-webhook-secret/dev",
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
     },
   },
   "Rules": {
