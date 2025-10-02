@@ -11,6 +11,7 @@
 - Maintain 85% minimum test coverage
 - Follow AAA pattern in tests
 - Mock external dependencies properly
+- Do not ever remove snapshot test, instead update the snapshot when it fails with `npm test -- -u` command.
 
 ## Code Quality
 - Run ESLint and fix all issues before completion

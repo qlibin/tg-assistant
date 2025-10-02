@@ -15,9 +15,13 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
       envName: string;
       lambdaName: string;
       setZipPath: boolean;
+      context?: Record<string, string>;
     }>
   ) => {
-    const app = new cdk.App();
+    const appProps = overrides?.context
+      ? { context: overrides.context as Record<string, unknown> }
+      : undefined;
+    const app = new cdk.App(appProps);
 
     if (overrides?.setZipPath) {
       // Provide a directory path as asset source so CDK can hash it without requiring a real ZIP
@@ -134,5 +138,58 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     template.hasResourceProperties('Custom::LogRetention', {
       RetentionInDays: 30,
     });
+  });
+
+  test('does not create Lambda invoke permission when apiId is not provided (default)', () => {
+    // Arrange
+    const stack = makeStack({ envName: 'dev' });
+
+    // Act
+    const template = Template.fromStack(stack);
+
+    // Assert
+    template.resourceCountIs('AWS::Lambda::Permission', 0);
+  });
+
+  test('creates Lambda invoke permission for REST API and outputs SourceArn', () => {
+    // Arrange
+    const stack = makeStack({
+      envName: 'dev',
+      context: {
+        apiGatewaySourceArn:
+          'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
+      },
+    });
+
+    // Act
+    const template = Template.fromStack(stack);
+
+    // Assert permission exists and outputs include SourceArn and identifiers
+    template.resourceCountIs('AWS::Lambda::Permission', 1);
+    template.hasResourceProperties('AWS::Lambda::Permission', {
+      Action: 'lambda:InvokeFunction',
+      Principal: 'apigateway.amazonaws.com',
+    });
+
+    template.hasOutput('ApiGatewaySourceArn', Match.anyValue());
+    template.hasOutput('FunctionArn', Match.anyValue());
+    template.hasOutput('FunctionName', Match.anyValue());
+    template.hasOutput('LambdaRegion', Match.anyValue());
+  });
+
+  test('creates Lambda invoke permission for HTTP API (pattern covered by snapshot)', () => {
+    // Arrange
+    const stack = makeStack({
+      envName: 'dev',
+      context: {
+        apiGatewaySourceArn: 'arn:aws:execute-api:us-east-1:123456789012:abc123/beta/*',
+      },
+    });
+
+    // Act
+    const templateJson = Template.fromStack(stack).toJSON();
+
+    // Assert: snapshot captures SourceArn structure including tokens
+    expect(templateJson).toMatchSnapshot();
   });
 });
