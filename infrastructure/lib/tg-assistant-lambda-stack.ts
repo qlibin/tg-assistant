@@ -3,6 +3,7 @@ import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 
 export interface TgAssistantLambdaStackProps extends StackProps {
   environmentName: string;
@@ -39,6 +40,20 @@ export class TgAssistantLambdaStack extends Stack {
 
     const handler = useInline ? 'index.handler' : 'dist/index.handler';
 
+    // Create or reference the Telegram webhook secret per environment
+    const secretName = `/tg-assistant/telegram-webhook-secret/${environmentName}`;
+    const telegramWebhookSecret = new secretsmanager.Secret(this, 'TelegramWebhookSecret', {
+      secretName,
+      description: 'Telegram webhook secret used to validate updates',
+      generateSecretString: {
+        // Placeholder; value should be updated out-of-band as per runbook
+        secretStringTemplate: JSON.stringify({}),
+        generateStringKey: 'webhookSecret',
+        passwordLength: 32,
+        excludePunctuation: true,
+      },
+    });
+
     const fn = new lambda.Function(this, 'Function', {
       functionName: lambdaName,
       runtime: lambda.Runtime.NODEJS_22_X,
@@ -50,11 +65,16 @@ export class TgAssistantLambdaStack extends Stack {
       handler,
       environment: {
         NODE_ENV: 'production',
+        TELEGRAM_WEBHOOK_SECRET_ARN: telegramWebhookSecret.secretArn,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
 
+    // Grant Lambda permission to read the secret value
+    telegramWebhookSecret.grantRead(fn);
+
     new CfnOutput(this, 'FunctionName', { value: fn.functionName });
     new CfnOutput(this, 'FunctionArn', { value: fn.functionArn });
+    new CfnOutput(this, 'TelegramWebhookSecretArn', { value: telegramWebhookSecret.secretArn });
   }
 }

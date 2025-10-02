@@ -46,6 +46,35 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     expect(templateJson).toMatchSnapshot();
   });
 
+  test('creates Secrets Manager secret per environment and exposes ARN to Lambda env', () => {
+    // Arrange
+    const stack = makeStack({ envName: 'dev', setZipPath: true });
+
+    // Act
+    const template = Template.fromStack(stack);
+
+    // Assert Secret resource
+    template.hasResourceProperties('AWS::SecretsManager::Secret', {
+      Name: '/tg-assistant/telegram-webhook-secret/dev',
+      Description: 'Telegram webhook secret used to validate updates',
+    });
+
+    // Assert Lambda has env var wired to secret ARN (token acceptable)
+    template.hasResourceProperties(
+      'AWS::Lambda::Function',
+      Match.objectLike({
+        Environment: Match.objectLike({
+          Variables: Match.objectLike({
+            TELEGRAM_WEBHOOK_SECRET_ARN: Match.anyValue(),
+          }),
+        }),
+      })
+    );
+
+    // Assert output for Secret ARN exists
+    template.hasOutput('TelegramWebhookSecretArn', Match.anyValue());
+  });
+
   test('creates Lambda with expected config (runtime, arch, memory, timeout, env)', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev', setZipPath: true });
@@ -54,19 +83,23 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     const template = Template.fromStack(stack);
 
     // Assert
-    template.hasResourceProperties('AWS::Lambda::Function', {
-      FunctionName: 'telegram-webhook-lambda-dev',
-      Runtime: 'nodejs22.x',
-      MemorySize: 1024,
-      Timeout: 300,
-      Architectures: ['arm64'],
-      Environment: {
-        Variables: {
-          NODE_ENV: 'production',
-        },
-      },
-      Handler: 'dist/index.handler',
-    });
+    template.hasResourceProperties(
+      'AWS::Lambda::Function',
+      Match.objectLike({
+        FunctionName: 'telegram-webhook-lambda-dev',
+        Runtime: 'nodejs22.x',
+        MemorySize: 1024,
+        Timeout: 300,
+        Architectures: ['arm64'],
+        Environment: Match.objectLike({
+          Variables: Match.objectLike({
+            NODE_ENV: 'production',
+            TELEGRAM_WEBHOOK_SECRET_ARN: Match.anyValue(),
+          }),
+        }),
+        Handler: 'dist/index.handler',
+      })
+    );
   });
 
   test('execution role trusts Lambda service and has AWSLambdaBasicExecutionRole', () => {

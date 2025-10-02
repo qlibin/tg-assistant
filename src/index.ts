@@ -7,6 +7,11 @@ import {
 import { ok, error } from './utils/http';
 import { isTelegramUpdate, safeJsonParse } from './utils/validation';
 import { TelegramService } from './services/telegram.service';
+import {
+  getTelegramWebhookSecret,
+  hasConfiguredSecretEnv,
+  isProduction,
+} from './utils/telegram-secret';
 
 function sanitizeEventForEcho(event: ApiGatewayProxyEvent): Record<string, unknown> {
   return {
@@ -41,6 +46,19 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
   if (!botToken) {
     console.error('Missing TELEGRAM_BOT_TOKEN');
     return error(500, 'Bot token not configured');
+  }
+
+  if (isProduction() && !hasConfiguredSecretEnv()) {
+    console.error('Missing TELEGRAM_WEBHOOK_SECRET_ARN (or local fallback) in production');
+    return error(500, 'Secret not configured');
+  }
+
+  // Optional: prefetch to warm cache on cold start when ARN is set
+  if (process.env.TELEGRAM_WEBHOOK_SECRET_ARN) {
+    void getTelegramWebhookSecret().catch(() => {
+      // Do not fail the entire invocation here; handler may not need it for non-validation flows
+      console.warn('Failed to prefetch Telegram webhook secret');
+    });
   }
 
   // Parse body
