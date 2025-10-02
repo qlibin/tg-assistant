@@ -66,7 +66,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
         "Environment": {
           "Variables": {
             "NODE_ENV": "production",
-            "TELEGRAM_WEBHOOK_SECRET_ARN": {
+            "TELEGRAM_SECRET_ARN": {
               "Ref": "TelegramWebhookSecret2F3DC73E",
             },
           },
@@ -247,14 +247,14 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
     "TelegramWebhookSecret2F3DC73E": {
       "DeletionPolicy": "Delete",
       "Properties": {
-        "Description": "Telegram webhook secret used to validate updates",
+        "Description": "Telegram webhook secret and bot token used for webhook validation and API calls",
         "GenerateSecretString": {
           "ExcludePunctuation": true,
-          "GenerateStringKey": "webhookSecret",
-          "PasswordLength": 32,
+          "GenerateStringKey": "placeholder",
+          "PasswordLength": 16,
           "SecretStringTemplate": "{}",
         },
-        "Name": "/tg-assistant/telegram-webhook-secret/dev",
+        "Name": "/tg-assistant/telegram-secrets/dev",
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
@@ -340,7 +340,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         "Environment": {
           "Variables": {
             "NODE_ENV": "production",
-            "TELEGRAM_WEBHOOK_SECRET_ARN": {
+            "TELEGRAM_SECRET_ARN": {
               "Ref": "TelegramWebhookSecret2F3DC73E",
             },
           },
@@ -521,14 +521,14 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
     "TelegramWebhookSecret2F3DC73E": {
       "DeletionPolicy": "Delete",
       "Properties": {
-        "Description": "Telegram webhook secret used to validate updates",
+        "Description": "Telegram webhook secret and bot token used for webhook validation and API calls",
         "GenerateSecretString": {
           "ExcludePunctuation": true,
-          "GenerateStringKey": "webhookSecret",
-          "PasswordLength": 32,
+          "GenerateStringKey": "placeholder",
+          "PasswordLength": 16,
           "SecretStringTemplate": "{}",
         },
-        "Name": "/tg-assistant/telegram-webhook-secret/dev",
+        "Name": "/tg-assistant/telegram-secrets/dev",
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",

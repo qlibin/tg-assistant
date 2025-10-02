@@ -7,11 +7,7 @@ import {
 import { ok, error } from './utils/http';
 import { isTelegramUpdate, safeJsonParse } from './utils/validation';
 import { TelegramService } from './services/telegram.service';
-import {
-  getTelegramWebhookSecret,
-  hasConfiguredSecretEnv,
-  isProduction,
-} from './utils/telegram-secret';
+import { getTelegramSecrets, hasConfiguredSecretEnv, isProduction } from './utils/telegram-secret';
 
 function sanitizeEventForEcho(event: ApiGatewayProxyEvent): Record<string, unknown> {
   return {
@@ -41,24 +37,27 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
   // Basic structured start log without PII
   console.log('Lambda invoked');
 
-  // Validate env
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  if (!botToken) {
-    console.error('Missing TELEGRAM_BOT_TOKEN');
-    return error(500, 'Bot token not configured');
-  }
-
+  // Validate env and warm cache
   if (isProduction() && !hasConfiguredSecretEnv()) {
-    console.error('Missing TELEGRAM_WEBHOOK_SECRET_ARN (or local fallback) in production');
+    console.error('Missing TELEGRAM_SECRET_ARN (or local fallbacks) in production');
     return error(500, 'Secret not configured');
   }
 
   // Optional: prefetch to warm cache on cold start when ARN is set
-  if (process.env.TELEGRAM_WEBHOOK_SECRET_ARN) {
-    void getTelegramWebhookSecret().catch(() => {
+  if (process.env.TELEGRAM_SECRET_ARN) {
+    void getTelegramSecrets().catch(() => {
       // Do not fail the entire invocation here; handler may not need it for non-validation flows
-      console.warn('Failed to prefetch Telegram webhook secret');
+      console.warn('Failed to prefetch Telegram secrets');
     });
+  }
+
+  // Resolve secrets or fallbacks to obtain bot token for Telegram API calls
+  const { botToken } = await getTelegramSecrets().catch(
+    () => ({ botToken: '' }) as { botToken: string }
+  );
+  if (!botToken) {
+    console.error('Missing Telegram bot token');
+    return error(500, 'Bot token not configured');
   }
 
   // Parse body

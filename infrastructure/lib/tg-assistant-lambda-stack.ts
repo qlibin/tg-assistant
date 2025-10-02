@@ -40,16 +40,17 @@ export class TgAssistantLambdaStack extends Stack {
 
     const handler = useInline ? 'index.handler' : 'dist/index.handler';
 
-    // Create or reference the Telegram webhook secret per environment
-    const secretName = `/tg-assistant/telegram-webhook-secret/${environmentName}`;
+    // Create or reference the unified Telegram secrets per environment
+    const secretName = `/tg-assistant/telegram-secrets/${environmentName}`;
     const telegramWebhookSecret = new secretsmanager.Secret(this, 'TelegramWebhookSecret', {
       secretName,
-      description: 'Telegram webhook secret used to validate updates',
+      description:
+        'Telegram webhook secret and bot token used for webhook validation and API calls',
       generateSecretString: {
-        // Placeholder; value should be updated out-of-band as per runbook
+        // Placeholder; actual values should be updated out-of-band as per runbook
         secretStringTemplate: JSON.stringify({}),
-        generateStringKey: 'webhookSecret',
-        passwordLength: 32,
+        generateStringKey: 'placeholder',
+        passwordLength: 16,
         excludePunctuation: true,
       },
     });
@@ -65,7 +66,7 @@ export class TgAssistantLambdaStack extends Stack {
       handler,
       environment: {
         NODE_ENV: 'production',
-        TELEGRAM_WEBHOOK_SECRET_ARN: telegramWebhookSecret.secretArn,
+        TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
       },
       logRetention: logs.RetentionDays.ONE_MONTH,
     });
