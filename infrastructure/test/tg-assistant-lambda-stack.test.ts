@@ -59,8 +59,9 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
 
     // Assert Secret resource
     template.hasResourceProperties('AWS::SecretsManager::Secret', {
-      Name: '/tg-assistant/telegram-webhook-secret/dev',
-      Description: 'Telegram webhook secret used to validate updates',
+      Name: '/tg-assistant/telegram-secrets/dev',
+      Description:
+        'Telegram webhook secret and bot token used for webhook validation and API calls',
     });
 
     // Assert Lambda has env var wired to secret ARN (token acceptable)
@@ -69,7 +70,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
       Match.objectLike({
         Environment: Match.objectLike({
           Variables: Match.objectLike({
-            TELEGRAM_WEBHOOK_SECRET_ARN: Match.anyValue(),
+            TELEGRAM_SECRET_ARN: Match.anyValue(),
           }),
         }),
       })
@@ -98,7 +99,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
         Environment: Match.objectLike({
           Variables: Match.objectLike({
             NODE_ENV: 'production',
-            TELEGRAM_WEBHOOK_SECRET_ARN: Match.anyValue(),
+            TELEGRAM_SECRET_ARN: Match.anyValue(),
           }),
         }),
         Handler: 'dist/index.handler',

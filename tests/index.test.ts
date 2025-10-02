@@ -7,8 +7,10 @@ jest.mock('../src/services/telegram.service');
 describe('Lambda Telegram Webhook Handler', () => {
   beforeEach(() => {
     jest.resetAllMocks();
-    // Default env
+    // Default env fallbacks for local development per unified secret util
+    process.env.TELEGRAM_WEBHOOK_SECRET = 'TEST_WEBHOOK_SECRET';
     process.env.TELEGRAM_BOT_TOKEN = 'TEST_TOKEN';
+    delete process.env.TELEGRAM_SECRET_ARN;
   });
 
   it('returns 500 when TELEGRAM_BOT_TOKEN is missing', async () => {
