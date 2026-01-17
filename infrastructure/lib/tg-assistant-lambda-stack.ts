@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import { Annotations, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
@@ -33,9 +32,7 @@ export class TgAssistantLambdaStack extends Stack {
 
     // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
     // We use a stable path to avoid 'fromInline' vs 'fromAsset' structural noise in diffs.
-    const lambdaZipPath =
-      process.env.LAMBDA_ZIP_PATH ||
-      (fs.existsSync('../dist') ? '../dist' : path.join(__dirname, '../test/fixtures'));
+    const lambdaZipPath = process.env.LAMBDA_ZIP_PATH || path.join(__dirname, '../test/fixtures');
     const code = lambda.Code.fromAsset(lambdaZipPath);
     const handler = 'index.handler';
 
