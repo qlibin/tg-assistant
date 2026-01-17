@@ -61,7 +61,8 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
           "arm64",
         ],
         "Code": {
-          "ZipFile": "exports.handler = async () => { return { statusCode: 200, body: "ok" }; };",
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "7ed814ab9ec1a15120c548b60f86829ef0a79ed35cff0468a70c601966459397.zip",
         },
         "Environment": {
           "Variables": {
@@ -346,7 +347,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
           },
         },
         "FunctionName": "telegram-webhook-lambda-dev",
-        "Handler": "dist/index.handler",
+        "Handler": "index.handler",
         "MemorySize": 1024,
         "Role": {
           "Fn::GetAtt": [

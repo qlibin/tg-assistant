@@ -102,7 +102,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
             TELEGRAM_SECRET_ARN: Match.anyValue(),
           }),
         }),
-        Handler: 'dist/index.handler',
+        Handler: 'index.handler',
       })
     );
   });
