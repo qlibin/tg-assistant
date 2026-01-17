@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { Match, Template } from 'aws-cdk-lib/assertions';
-import { TgAssistantLambdaStack } from '../lib/tg-assistant-lambda-stack';
+import { TgAssistantLambdaStack } from '../lib/tg-assistant-lambda-stack.js';
 
 // AAA pattern tests for CDK stack
 
@@ -132,11 +132,12 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
 
   test('configures log retention for 30 days', () => {
     // Arrange
-    const stack = makeStack({ envName: 'dev' });
+    const stack = makeStack({ envName: 'dev', lambdaName: 'telegram-webhook-lambda-dev' });
     const template = Template.fromStack(stack);
 
     // Assert
-    template.hasResourceProperties('Custom::LogRetention', {
+    template.hasResourceProperties('AWS::Logs::LogGroup', {
+      LogGroupName: '/aws/lambda/telegram-webhook-lambda-dev',
       RetentionInDays: 30,
     });
   });

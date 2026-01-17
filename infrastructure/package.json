@@ -16,7 +16,7 @@
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
     "diff": "cdk diff",
-    "test": "jest --coverage",
+    "test": "node --experimental-vm-modules ./node_modules/.bin/jest --coverage",
     "validate": "npm run build && npm run lint && npm run format:check && npm run type-check && npm run test"
   },
   "devDependencies": {

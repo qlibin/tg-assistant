@@ -1,4 +1,6 @@
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import * as cdk from 'aws-cdk-lib';
 import { Annotations, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -32,6 +34,7 @@ export class TgAssistantLambdaStack extends Stack {
 
     // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
     // We use a stable path to avoid 'fromInline' vs 'fromAsset' structural noise in diffs.
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const lambdaZipPath = process.env.LAMBDA_ZIP_PATH || path.join(__dirname, '../test/fixtures');
     const code = lambda.Code.fromAsset(lambdaZipPath);
     const handler = 'index.handler';
@@ -64,7 +67,11 @@ export class TgAssistantLambdaStack extends Stack {
         NODE_ENV: 'production',
         TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
       },
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'FunctionLogGroup', {
+        logGroupName: `/aws/lambda/${lambdaName}`,
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
     });
 
     // Grant Lambda permission to read the secret value
