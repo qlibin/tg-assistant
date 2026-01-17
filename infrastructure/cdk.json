@@ -1,5 +1,5 @@
 {
-  "app": "node --loader ts-node/esm bin/tg-assistant-lambda.ts",
+  "app": "node --loader ts-node/esm bin/tg-assistant-lambda.ts --profile aws-course",
   "context": {
     "environments": {
       "dev": {

@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import { Annotations, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -29,8 +31,11 @@ export class TgAssistantLambdaStack extends Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
 
-    // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to ../dist asset
-    const lambdaZipPath = process.env.LAMBDA_ZIP_PATH || '../dist';
+    // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
+    // We use a stable path to avoid 'fromInline' vs 'fromAsset' structural noise in diffs.
+    const lambdaZipPath =
+      process.env.LAMBDA_ZIP_PATH ||
+      (fs.existsSync('../dist') ? '../dist' : path.join(__dirname, '../test/fixtures'));
     const code = lambda.Code.fromAsset(lambdaZipPath);
     const handler = 'index.handler';
 
