@@ -1,3 +1,6 @@
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import * as cdk from 'aws-cdk-lib';
 import { Annotations, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -8,6 +11,7 @@ import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 export interface TgAssistantLambdaStackProps extends StackProps {
   environmentName: string;
   lambdaName: string;
+  apiGatewaySourceArn?: string | undefined;
   tags?: Record<string, string>;
 }
 
@@ -15,7 +19,7 @@ export class TgAssistantLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: TgAssistantLambdaStackProps) {
     super(scope, id, props);
 
-    const { environmentName, lambdaName } = props;
+    const { environmentName, lambdaName, apiGatewaySourceArn } = props;
 
     // Execution role for Lambda (least privilege: basic execution role)
     const execRole = new iam.Role(this, 'LambdaExecutionRole', {
@@ -28,17 +32,12 @@ export class TgAssistantLambdaStack extends Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
 
-    // Choose code source: use pre-built ZIP when provided by CI, otherwise inline minimal handler to allow synth/tests without filesystem assets
-    const lambdaZipPath = process.env.LAMBDA_ZIP_PATH;
-    const useInline = !lambdaZipPath;
-
-    const code = useInline
-      ? lambda.Code.fromInline(
-          'exports.handler = async () => { return { statusCode: 200, body: "ok" }; };'
-        )
-      : lambda.Code.fromAsset(lambdaZipPath);
-
-    const handler = useInline ? 'index.handler' : 'dist/index.handler';
+    // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
+    // We use a stable path to avoid 'fromInline' vs 'fromAsset' structural noise in diffs.
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const lambdaZipPath = process.env.LAMBDA_ZIP_PATH || path.join(__dirname, '../test/fixtures');
+    const code = lambda.Code.fromAsset(lambdaZipPath);
+    const handler = 'index.handler';
 
     // Create or reference the unified Telegram secrets per environment
     const secretName = `/tg-assistant/telegram-secrets/${environmentName}`;
@@ -68,14 +67,19 @@ export class TgAssistantLambdaStack extends Stack {
         NODE_ENV: 'production',
         TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
       },
-      logRetention: logs.RetentionDays.ONE_MONTH,
+      logGroup: new logs.LogGroup(this, 'FunctionLogGroup', {
+        logGroupName: `/aws/lambda/${lambdaName}`,
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
     });
 
     // Grant Lambda permission to read the secret value
     telegramWebhookSecret.grantRead(fn);
 
     // Context parameter for external API Gateway invoke permission (full SourceArn provided)
-    const sourceArnRaw = this.node.tryGetContext('apiGatewaySourceArn') as unknown;
+    const sourceArnRaw =
+      apiGatewaySourceArn ?? (this.node.tryGetContext('apiGatewaySourceArn') as unknown);
     const sourceArn =
       typeof sourceArnRaw === 'string' && sourceArnRaw.trim().length > 0
         ? sourceArnRaw.trim()

@@ -15,7 +15,8 @@
     "synth": "cdk synth",
     "deploy": "cdk deploy",
     "destroy": "cdk destroy",
-    "test": "jest --coverage",
+    "diff": "cdk diff",
+    "test": "node --experimental-vm-modules ./node_modules/.bin/jest --coverage",
     "validate": "npm run build && npm run lint && npm run format:check && npm run type-check && npm run test"
   },
   "devDependencies": {
@@ -26,7 +27,7 @@
     "eslint": "^8.0.0",
     "jest": "^29.7.0",
     "prettier": "^3.0.0",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.4.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   },

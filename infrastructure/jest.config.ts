@@ -5,6 +5,9 @@ const config: Config = {
   testEnvironment: 'node',
   roots: ['<rootDir>/test'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  moduleNameMapper: {
+    '^(\\.\\.?\\/.+)\\.js$': '$1',
+  },
   transform: {
     '^.+\\.(ts|tsx)$': [
       'ts-jest',
