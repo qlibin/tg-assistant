@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Minimal Telegram and API Gateway types used by the handler
 // Strict typing: no any
 
@@ -62,4 +61,4 @@ export interface TelegramApiResponseErr {
 
 export type TelegramApiResponse<T> = TelegramApiResponseOk<T> | TelegramApiResponseErr;
 
-export interface TelegramSentMessage extends TelegramMessage {}
+export type TelegramSentMessage = TelegramMessage;

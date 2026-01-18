@@ -88,7 +88,7 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
 
   try {
     await TelegramService.sendMessage({ botToken, chatId: info.chatId, text: replyText });
-  } catch (e) {
+  } catch {
     // Network/service failures: log internally but do not leak details
     console.error('Failed to send Telegram message');
     return ok('Webhook processed (send failure)');
