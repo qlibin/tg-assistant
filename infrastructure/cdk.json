@@ -1,5 +1,5 @@
 {
-  "app": "node --loader ts-node/esm bin/tg-assistant-lambda.ts",
+  "app": "node --loader ts-node/esm bin/tg-assistant-lambda.ts --profile aws-course",
   "context": {
     "environments": {
       "dev": {
@@ -7,6 +7,7 @@
         "region": "eu-central-1",
         "envName": "dev",
         "lambdaName": "telegram-webhook-lambda-dev",
+        "apiGatewaySourceArn": "arn:aws:execute-api:eu-central-1:182399716679:g9nzedx79i/*/POST/qlibin-assistant-listener",
         "tags": {
           "app": "telegram-webhook",
           "env": "dev"
