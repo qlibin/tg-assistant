@@ -86,6 +86,8 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
     `Hello ${info.userFirstName}! \u{1F44B}\n\n` +
     `AWS Lambda Event Echo:\n\u0060\u0060\u0060json\n${JSON.stringify(sanitizeEventForEcho(event), null, 2)}\n\u0060\u0060\u0060`;
 
+  console.debug(`event: : ${JSON.stringify(event, null, 2)}`);
+
   try {
     await TelegramService.sendMessage({ botToken, chatId: info.chatId, text: replyText });
   } catch (e) {
