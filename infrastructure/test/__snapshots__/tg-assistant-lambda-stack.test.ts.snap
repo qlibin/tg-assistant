@@ -62,7 +62,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
         ],
         "Code": {
           "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "9237631b006453b8d2b275e61053dbf9c1ec0da492720b99a9d83ce3b802c656.zip",
+          "S3Key": "48204713adc2a3b0ebc318fbf2f4bfa1ce64bbca870476b33905695a0cbe59da.zip",
         },
         "Environment": {
           "Variables": {
