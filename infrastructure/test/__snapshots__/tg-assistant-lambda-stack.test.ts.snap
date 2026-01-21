@@ -1,4 +1,4 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
 exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke permission for HTTP API (pattern covered by snapshot) 1`] = `
 {
