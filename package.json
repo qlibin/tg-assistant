@@ -31,7 +31,7 @@
   "author": "Development Team",
   "license": "MIT",
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.971.0",
+    "@aws-sdk/client-secrets-manager": "^3.986.0",
     "dotenv": "^17.2.3",
     "zod": "^4.3.5"
   },
