@@ -102,16 +102,11 @@ export class TgAssistantLambdaStack extends Stack {
     });
 
     // POST /webhook route on the shared API (auto-deployed by HTTP API v2)
+    // HttpLambdaIntegration auto-creates a scoped Lambda invoke permission
     new HttpRoute(this, 'WebhookRoute', {
       httpApi: sharedApi,
       routeKey: HttpRouteKey.with('/webhook', HttpMethod.POST),
       integration: webhookIntegration,
-    });
-
-    // Lambda invoke permission — source ARN constructed from API ID
-    fn.addPermission('ApiGatewayInvoke', {
-      principal: new iam.ServicePrincipal('apigateway.amazonaws.com'),
-      sourceArn: `arn:aws:execute-api:${this.region}:${this.account}:${apiId}/*/*/webhook`,
     });
 
     new CfnOutput(this, 'FunctionName', { value: fn.functionName });

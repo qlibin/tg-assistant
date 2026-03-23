@@ -84,31 +84,6 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       },
       "Type": "AWS::Lambda::Function",
     },
-    "FunctionApiGatewayInvokeB5014D23": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "Function76856677",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Fn::Join": [
-            "",
-            [
-              "arn:aws:execute-api:us-east-1:123456789012:",
-              {
-                "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
-              },
-              "/*/*/webhook",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "FunctionLogGroupBD1576D5": {
       "DeletionPolicy": "Delete",
       "Properties": {
