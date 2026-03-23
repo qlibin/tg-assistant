@@ -6,10 +6,10 @@ The Telegram Assistant is a webhook-based bot running on AWS Lambda. It receives
 
 The project spans two repositories:
 
-| Repository | Purpose |
-|---|---|
-| `qlibin/tg-assistant` (this repo) | Lambda application code and its CDK stack |
-| `qlibin/tg-assistant-infra` | Shared infrastructure: API Gateway, SQS queues, IAM roles, KMS, monitoring |
+| Repository                        | Purpose                                                                    |
+|-----------------------------------|----------------------------------------------------------------------------|
+| `qlibin/tg-assistant` (this repo) | Lambda application code and its CDK stack                                  |
+| `qlibin/tg-assistant-infra`       | Shared infrastructure: API Gateway, SQS queues, IAM roles, KMS, monitoring |
 
 ## Current State
 
@@ -42,15 +42,15 @@ The project spans two repositories:
 
 ### Key Files
 
-| File | Description |
-|---|---|
-| `src/index.ts` | Lambda handler entry point |
-| `src/services/telegram.service.ts` | Telegram Bot API client (`sendMessage`) |
-| `src/utils/telegram-secret.ts` | Secrets Manager integration with in-memory caching |
-| `src/utils/validation.ts` | Input validation (safe JSON parse, type guards) |
-| `src/utils/http.ts` | HTTP response helpers |
-| `src/types/telegram.ts` | TypeScript interfaces for Telegram API |
-| `infrastructure/lib/tg-assistant-lambda-stack.ts` | CDK stack |
+| File                                              | Description                                        |
+|---------------------------------------------------|----------------------------------------------------|
+| `src/index.ts`                                    | Lambda handler entry point                         |
+| `src/services/telegram.service.ts`                | Telegram Bot API client (`sendMessage`)            |
+| `src/utils/telegram-secret.ts`                    | Secrets Manager integration with in-memory caching |
+| `src/utils/validation.ts`                         | Input validation (safe JSON parse, type guards)    |
+| `src/utils/http.ts`                               | HTTP response helpers                              |
+| `src/types/telegram.ts`                           | TypeScript interfaces for Telegram API             |
+| `infrastructure/lib/tg-assistant-lambda-stack.ts` | CDK stack                                          |
 
 ### Infrastructure Ownership
 
@@ -73,18 +73,18 @@ The project spans two repositories:
 
 All shared infrastructure references use SSM Parameter Store under `/automation/{env}/...`:
 
-| Parameter Path | Description |
-|---|---|
-| `/automation/{env}/sqs/order-queue/url` | Order Queue URL |
-| `/automation/{env}/sqs/order-queue/arn` | Order Queue ARN |
-| `/automation/{env}/sqs/result-queue/url` | Result Queue URL |
-| `/automation/{env}/sqs/result-queue/arn` | Result Queue ARN |
-| `/automation/{env}/iam/webhook-role/arn` | Webhook Lambda role ARN |
-| `/automation/{env}/iam/worker-role/arn` | Worker Lambda role ARN |
-| `/automation/{env}/iam/feedback-role/arn` | Feedback Lambda role ARN |
-| `/automation/{env}/api-gateway/rest-api-id` | API Gateway REST API ID |
-| `/automation/{env}/api-gateway/source-arn` | API Gateway source ARN |
-| `/automation/{env}/api-gateway/domain` | Custom domain name |
+| Parameter Path                               | Description              |
+|----------------------------------------------|--------------------------|
+| `/automation/{env}/sqs/order-queue/url`      | Order Queue URL          |
+| `/automation/{env}/sqs/order-queue/arn`      | Order Queue ARN          |
+| `/automation/{env}/sqs/result-queue/url`     | Result Queue URL         |
+| `/automation/{env}/sqs/result-queue/arn`     | Result Queue ARN         |
+| `/automation/{env}/iam/webhook-role/arn`     | Webhook Lambda role ARN  |
+| `/automation/{env}/iam/worker-role/arn`      | Worker Lambda role ARN   |
+| `/automation/{env}/iam/feedback-role/arn`    | Feedback Lambda role ARN |
+| `/automation/{env}/api-gateway/rest-api-id`  | API Gateway REST API ID  |
+| `/automation/{env}/api-gateway/source-arn`   | API Gateway source ARN   |
+| `/automation/{env}/api-gateway/domain`       | Custom domain name       |
 | `/automation/{env}/monitoring/sns-topic/arn` | Monitoring SNS topic ARN |
 
 ### Deployment
@@ -100,50 +100,50 @@ The planned architecture adds SQS-based task processing with worker Lambdas:
 │  Telegram    │ POST  │ API Gateway  │       │  Webhook Lambda      │
 │  Bot API     │──────>│ tg.qlibin.com│──────>│  (tg-assistant)      │
 │              │       └──────────────┘       │                      │
-│              │                               │  1. Validate update  │
-│              │                               │  2. Parse command    │
-│              │                               │  3. Send OrderMessage│
-│              │                               │     to Order Queue   │
-│              │                               │  4. Ack to user      │
-│              │                               └──────────┬───────────┘
-│              │                                          │ sqs:SendMessage
-│              │                                          ▼
-│              │                               ┌──────────────────────┐
-│              │                               │    Order Queue       │
-│              │                               │    (14d retention)   │
-│              │                               └──────────┬───────────┘
-│              │                                          │ SQS Event Source
-│              │                                          ▼
-│              │                               ┌──────────────────────┐
-│              │                               │   Worker Lambda(s)   │
-│              │                               │   - Playwright       │
-│              │                               │   - Perplexity       │
-│              │                               │   - Text processing  │
-│              │                               └──────────┬───────────┘
-│              │                                          │ sqs:SendMessage
-│              │                                          ▼
-│              │                               ┌──────────────────────┐
-│              │                               │    Result Queue      │
-│              │                               │    (7d retention)    │
-│              │                               └──────────┬───────────┘
-│              │                                          │ SQS Event Source
-│              │                                          ▼
-│              │                               ┌──────────────────────┐
-│  sendMessage │<──────────────────────────────│  Feedback Lambda     │
-│              │        notify / enhance       │  (tg-assistant)      │
-│              │                               │  - Notify user       │
-│              │                               │  - Requeue if needed │
-│              │                               │  - Escalate          │
-└──────────────┘                               └──────────────────────┘
+│              │                              │  1. Validate update  │
+│              │                              │  2. Parse command    │
+│              │                              │  3. Send OrderMessage│
+│              │                              │     to Order Queue   │
+│              │                              │  4. Ack to user      │
+│              │                              └──────────┬───────────┘
+│              │                                         │ sqs:SendMessage
+│              │                                         ▼
+│              │                              ┌──────────────────────┐
+│              │                              │    Order Queue       │
+│              │                              │    (14d retention)   │
+│              │                              └──────────┬───────────┘
+│              │                                         │ SQS Event Source
+│              │                                         ▼
+│              │                              ┌──────────────────────┐
+│              │                              │   Worker Lambda(s)   │
+│              │                              │   - Playwright       │
+│              │                              │   - Perplexity       │
+│              │                              │   - Text processing  │
+│              │                              └──────────┬───────────┘
+│              │                                         │ sqs:SendMessage
+│              │                                         ▼
+│              │                              ┌──────────────────────┐
+│              │                              │    Result Queue      │
+│              │                              │    (7d retention)    │
+│              │                              └──────────┬───────────┘
+│              │                                         │ SQS Event Source
+│              │                                         ▼
+│              │                              ┌──────────────────────┐
+│  sendMessage │<─────────────────────────────│  Feedback Lambda     │
+│              │        notify / enhance      │  (tg-assistant)      │
+│              │                              │  - Notify user       │
+│              │                              │  - Requeue if needed │
+│              │                              │  - Escalate          │
+└──────────────┘                              └──────────────────────┘
 ```
 
 ### Component Roles
 
-| Component | Repo | IAM Role | Responsibilities |
-|---|---|---|---|
-| Webhook Lambda | tg-assistant | `tg-assistant-{env}-webhook-role` | Validate update, parse command, create OrderMessage, send to Order Queue, acknowledge to user |
-| Worker Lambda(s) | separate repos | `tg-assistant-{env}-worker-role` | Consume from Order Queue, execute task, produce ResultMessage to Result Queue |
-| Feedback Lambda | tg-assistant (or separate) | `tg-assistant-{env}-feedback-role` | Consume from Result Queue, notify user via Telegram, requeue on failure, escalate |
+| Component        | Repo                       | IAM Role                           | Responsibilities                                                                              |
+|------------------|----------------------------|------------------------------------|-----------------------------------------------------------------------------------------------|
+| Webhook Lambda   | tg-assistant               | `tg-assistant-{env}-webhook-role`  | Validate update, parse command, create OrderMessage, send to Order Queue, acknowledge to user |
+| Worker Lambda(s) | separate repos             | `tg-assistant-{env}-worker-role`   | Consume from Order Queue, execute task, produce ResultMessage to Result Queue                 |
+| Feedback Lambda  | tg-assistant (or separate) | `tg-assistant-{env}-feedback-role` | Consume from Result Queue, notify user via Telegram, requeue on failure, escalate             |
 
 ### Message Schemas
 
