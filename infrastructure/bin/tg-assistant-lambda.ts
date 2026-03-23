@@ -8,7 +8,6 @@ interface EnvConfig {
   region: string;
   envName: string;
   lambdaName: string;
-  apiGatewaySourceArn?: string;
   tags?: Record<string, string>;
 }
 
@@ -50,7 +49,6 @@ const stack = new TgAssistantLambdaStack(app, `TgAssistantLambdaStack-${envCfg.e
   description: `TG Assistant Lambda (${envCfg.envName}) from ZIP asset`,
   environmentName: envCfg.envName,
   lambdaName: envCfg.lambdaName,
-  apiGatewaySourceArn: envCfg.apiGatewaySourceArn ?? undefined,
   tags: envCfg.tags ?? {},
 });
 

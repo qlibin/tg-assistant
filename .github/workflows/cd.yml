@@ -13,8 +13,7 @@ env:
   ENV_NAME: dev
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   RUN_BOOTSTRAP: ${{ vars.RUN_BOOTSTRAP || 'false' }}
-  # API Gateway SourceArn propagated from GitHub Environment variable
-  API_GATEWAY_SOURCE_ARN: ${{ vars.API_GATEWAY_SOURCE_ARN }}
+
 
 jobs:
   build-validate-test:
@@ -149,6 +148,5 @@ jobs:
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
           LAMBDA_ZIP_PATH: "./assets/lambda.zip"
-          API_GATEWAY_SOURCE_ARN: ${{ env.API_GATEWAY_SOURCE_ARN }}
         run: |
-          npx cdk deploy --require-approval never -c environment=${ENV_NAME} -c apiGatewaySourceArn=${API_GATEWAY_SOURCE_ARN}
+          npx cdk deploy --require-approval never -c environment=${ENV_NAME}

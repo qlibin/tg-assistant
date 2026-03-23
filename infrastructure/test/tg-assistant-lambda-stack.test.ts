@@ -15,13 +15,9 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
       envName: string;
       lambdaName: string;
       setZipPath: boolean;
-      context?: Record<string, string>;
     }>
   ) => {
-    const appProps = overrides?.context
-      ? { context: overrides.context as Record<string, unknown> }
-      : undefined;
-    const app = new cdk.App(appProps);
+    const app = new cdk.App();
 
     if (overrides?.setZipPath) {
       // Provide a directory path as asset source so CDK can hash it without requiring a real ZIP
@@ -100,6 +96,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
           Variables: Match.objectLike({
             NODE_ENV: 'production',
             TELEGRAM_SECRET_ARN: Match.anyValue(),
+            ENVIRONMENT: 'dev',
           }),
         }),
         Handler: 'index.handler',
@@ -142,56 +139,34 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     });
   });
 
-  test('does not create Lambda invoke permission when apiId is not provided (default)', () => {
+  test('creates webhook route, integration, and invoke permission on shared API', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev' });
 
     // Act
     const template = Template.fromStack(stack);
 
-    // Assert
-    template.resourceCountIs('AWS::Lambda::Permission', 0);
-  });
-
-  test('creates Lambda invoke permission for REST API and outputs SourceArn', () => {
-    // Arrange
-    const stack = makeStack({
-      envName: 'dev',
-      context: {
-        apiGatewaySourceArn:
-          'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
-      },
+    // Assert: POST /webhook route on the shared HTTP API
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: 'POST /webhook',
     });
 
-    // Act
-    const template = Template.fromStack(stack);
+    // Assert: Lambda integration exists
+    template.hasResourceProperties('AWS::ApiGatewayV2::Integration', {
+      IntegrationType: 'AWS_PROXY',
+      PayloadFormatVersion: '1.0',
+    });
 
-    // Assert permission exists and outputs include SourceArn and identifiers
-    template.resourceCountIs('AWS::Lambda::Permission', 1);
+    // Assert: Lambda invoke permission for API Gateway
     template.hasResourceProperties('AWS::Lambda::Permission', {
       Action: 'lambda:InvokeFunction',
       Principal: 'apigateway.amazonaws.com',
     });
 
-    template.hasOutput('ApiGatewaySourceArn', Match.anyValue());
+    // Assert: outputs
+    template.hasOutput('ApiGatewayId', Match.anyValue());
     template.hasOutput('FunctionArn', Match.anyValue());
     template.hasOutput('FunctionName', Match.anyValue());
     template.hasOutput('LambdaRegion', Match.anyValue());
-  });
-
-  test('creates Lambda invoke permission for HTTP API (pattern covered by snapshot)', () => {
-    // Arrange
-    const stack = makeStack({
-      envName: 'dev',
-      context: {
-        apiGatewaySourceArn: 'arn:aws:execute-api:us-east-1:123456789012:abc123/beta/*',
-      },
-    });
-
-    // Act
-    const templateJson = Template.fromStack(stack).toJSON();
-
-    // Assert: snapshot captures SourceArn structure including tokens
-    expect(templateJson).toMatchSnapshot();
   });
 });

@@ -1,17 +1,25 @@
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import * as cdk from 'aws-cdk-lib';
-import { Annotations, CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
+import {
+  HttpApi,
+  HttpMethod,
+  HttpRoute,
+  HttpRouteKey,
+  PayloadFormatVersion,
+} from 'aws-cdk-lib/aws-apigatewayv2';
+import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 
 export interface TgAssistantLambdaStackProps extends StackProps {
   environmentName: string;
   lambdaName: string;
-  apiGatewaySourceArn?: string | undefined;
   tags?: Record<string, string>;
 }
 
@@ -19,7 +27,7 @@ export class TgAssistantLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: TgAssistantLambdaStackProps) {
     super(scope, id, props);
 
-    const { environmentName, lambdaName, apiGatewaySourceArn } = props;
+    const { environmentName, lambdaName } = props;
 
     // Execution role for Lambda (least privilege: basic execution role)
     const execRole = new iam.Role(this, 'LambdaExecutionRole', {
@@ -66,6 +74,7 @@ export class TgAssistantLambdaStack extends Stack {
       environment: {
         NODE_ENV: 'production',
         TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
+        ENVIRONMENT: environmentName,
       },
       logGroup: new logs.LogGroup(this, 'FunctionLogGroup', {
         logGroupName: `/aws/lambda/${lambdaName}`,
@@ -77,33 +86,33 @@ export class TgAssistantLambdaStack extends Stack {
     // Grant Lambda permission to read the secret value
     telegramWebhookSecret.grantRead(fn);
 
-    // Context parameter for external API Gateway invoke permission (full SourceArn provided)
-    const sourceArnRaw =
-      apiGatewaySourceArn ?? (this.node.tryGetContext('apiGatewaySourceArn') as unknown);
-    const sourceArn =
-      typeof sourceArnRaw === 'string' && sourceArnRaw.trim().length > 0
-        ? sourceArnRaw.trim()
-        : undefined;
+    // Import shared HTTP API v2 by ID from SSM (provisioned by tg-assistant-infra)
+    const apiId = StringParameter.valueForStringParameter(
+      this,
+      `/automation/${environmentName}/api-gateway/id`
+    );
 
-    if (sourceArn) {
-      new lambda.CfnPermission(this, 'ApiGatewayInvokePermission', {
-        action: 'lambda:InvokeFunction',
-        functionName: fn.functionArn,
-        principal: 'apigateway.amazonaws.com',
-        sourceArn,
-      });
-    } else {
-      Annotations.of(this).addWarning(
-        'API Gateway SourceArn not provided. Skipping Lambda invoke permission. Provide context: -c apiGatewaySourceArn=arn:aws:execute-api:...'
-      );
-    }
+    const sharedApi = HttpApi.fromHttpApiAttributes(this, 'SharedHttpApi', {
+      httpApiId: apiId,
+    });
+
+    // Lambda integration with v1.0 payload format for backward compatibility
+    const webhookIntegration = new HttpLambdaIntegration('WebhookIntegration', fn, {
+      payloadFormatVersion: PayloadFormatVersion.VERSION_1_0,
+    });
+
+    // POST /webhook route on the shared API (auto-deployed by HTTP API v2)
+    // HttpLambdaIntegration auto-creates a scoped Lambda invoke permission
+    new HttpRoute(this, 'WebhookRoute', {
+      httpApi: sharedApi,
+      routeKey: HttpRouteKey.with('/webhook', HttpMethod.POST),
+      integration: webhookIntegration,
+    });
 
     new CfnOutput(this, 'FunctionName', { value: fn.functionName });
     new CfnOutput(this, 'FunctionArn', { value: fn.functionArn });
     new CfnOutput(this, 'LambdaRegion', { value: Stack.of(this).region });
-    if (sourceArn) {
-      new CfnOutput(this, 'ApiGatewaySourceArn', { value: sourceArn });
-    }
+    new CfnOutput(this, 'ApiGatewayId', { value: apiId });
     new CfnOutput(this, 'TelegramWebhookSecretArn', { value: telegramWebhookSecret.secretArn });
   }
 }
