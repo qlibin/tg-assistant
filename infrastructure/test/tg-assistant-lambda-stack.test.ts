@@ -15,13 +15,9 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
       envName: string;
       lambdaName: string;
       setZipPath: boolean;
-      context?: Record<string, string>;
     }>
   ) => {
-    const appProps = overrides?.context
-      ? { context: overrides.context as Record<string, unknown> }
-      : undefined;
-    const app = new cdk.App(appProps);
+    const app = new cdk.App();
 
     if (overrides?.setZipPath) {
       // Provide a directory path as asset source so CDK can hash it without requiring a real ZIP
@@ -143,59 +139,34 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     });
   });
 
-  test('creates Lambda invoke permission with SSM lookup when no context override', () => {
+  test('creates webhook route, integration, and invoke permission on shared API', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev' });
 
     // Act
     const template = Template.fromStack(stack);
 
-    // Assert: permission always exists (SSM dynamic reference as fallback)
-    template.resourceCountIs('AWS::Lambda::Permission', 1);
+    // Assert: POST /webhook route on the shared HTTP API
+    template.hasResourceProperties('AWS::ApiGatewayV2::Route', {
+      RouteKey: 'POST /webhook',
+    });
+
+    // Assert: Lambda integration exists
+    template.hasResourceProperties('AWS::ApiGatewayV2::Integration', {
+      IntegrationType: 'AWS_PROXY',
+      PayloadFormatVersion: '1.0',
+    });
+
+    // Assert: Lambda invoke permission for API Gateway
     template.hasResourceProperties('AWS::Lambda::Permission', {
       Action: 'lambda:InvokeFunction',
       Principal: 'apigateway.amazonaws.com',
     });
 
-    template.hasOutput('ApiGatewaySourceArn', Match.anyValue());
+    // Assert: outputs
+    template.hasOutput('ApiGatewayId', Match.anyValue());
     template.hasOutput('FunctionArn', Match.anyValue());
     template.hasOutput('FunctionName', Match.anyValue());
     template.hasOutput('LambdaRegion', Match.anyValue());
-  });
-
-  test('creates Lambda invoke permission with context override when provided', () => {
-    // Arrange
-    const stack = makeStack({
-      envName: 'dev',
-      context: {
-        apiGatewaySourceArn:
-          'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
-      },
-    });
-
-    // Act
-    const template = Template.fromStack(stack);
-
-    // Assert: permission uses explicit source ARN from context
-    template.resourceCountIs('AWS::Lambda::Permission', 1);
-    template.hasResourceProperties('AWS::Lambda::Permission', {
-      Action: 'lambda:InvokeFunction',
-      Principal: 'apigateway.amazonaws.com',
-      SourceArn:
-        'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
-    });
-
-    template.hasOutput('ApiGatewaySourceArn', Match.anyValue());
-  });
-
-  test('SSM fallback uses correct parameter path for environment', () => {
-    // Arrange
-    const stack = makeStack({ envName: 'prod' });
-
-    // Act
-    const templateJson = Template.fromStack(stack).toJSON();
-
-    // Assert: snapshot captures SSM dynamic reference structure
-    expect(templateJson).toMatchSnapshot();
   });
 });

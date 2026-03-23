@@ -1,226 +1,12 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) SSM fallback uses correct parameter path for environment 1`] = `
-{
-  "Description": "Test stack",
-  "Outputs": {
-    "ApiGatewaySourceArn": {
-      "Value": {
-        "Ref": "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
-      },
-    },
-    "FunctionArn": {
-      "Value": {
-        "Fn::GetAtt": [
-          "Function76856677",
-          "Arn",
-        ],
-      },
-    },
-    "FunctionName": {
-      "Value": {
-        "Ref": "Function76856677",
-      },
-    },
-    "LambdaRegion": {
-      "Value": "us-east-1",
-    },
-    "TelegramWebhookSecretArn": {
-      "Value": {
-        "Ref": "TelegramWebhookSecret2F3DC73E",
-      },
-    },
-  },
-  "Parameters": {
-    "BootstrapVersion": {
-      "Default": "/cdk-bootstrap/hnb659fds/version",
-      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
-      "Type": "AWS::SSM::Parameter::Value<String>",
-    },
-    "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
-      "Default": "/automation/prod/api-gateway/source-arn",
-      "Type": "AWS::SSM::Parameter::Value<String>",
-    },
-  },
-  "Resources": {
-    "ApiGatewayInvokePermission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "Function76856677",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Ref": "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "Function76856677": {
-      "DependsOn": [
-        "LambdaExecutionRoleDefaultPolicy6D69732F",
-        "LambdaExecutionRoleD5C26073",
-      ],
-      "Properties": {
-        "Architectures": [
-          "arm64",
-        ],
-        "Code": {
-          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "48204713adc2a3b0ebc318fbf2f4bfa1ce64bbca870476b33905695a0cbe59da.zip",
-        },
-        "Environment": {
-          "Variables": {
-            "ENVIRONMENT": "prod",
-            "NODE_ENV": "production",
-            "TELEGRAM_SECRET_ARN": {
-              "Ref": "TelegramWebhookSecret2F3DC73E",
-            },
-          },
-        },
-        "FunctionName": "telegram-webhook-lambda-dev",
-        "Handler": "index.handler",
-        "LoggingConfig": {
-          "LogGroup": {
-            "Ref": "FunctionLogGroupBD1576D5",
-          },
-        },
-        "MemorySize": 1024,
-        "Role": {
-          "Fn::GetAtt": [
-            "LambdaExecutionRoleD5C26073",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs22.x",
-        "Timeout": 300,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "FunctionLogGroupBD1576D5": {
-      "DeletionPolicy": "Delete",
-      "Properties": {
-        "LogGroupName": "/aws/lambda/telegram-webhook-lambda-dev",
-        "RetentionInDays": 30,
-      },
-      "Type": "AWS::Logs::LogGroup",
-      "UpdateReplacePolicy": "Delete",
-    },
-    "LambdaExecutionRoleD5C26073": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "Description": "Execution role for Lambda to write logs",
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-        "RoleName": "telegram-webhook-lambda-role-prod",
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "LambdaExecutionRoleDefaultPolicy6D69732F": {
-      "Properties": {
-        "PolicyDocument": {
-          "Statement": [
-            {
-              "Action": [
-                "secretsmanager:GetSecretValue",
-                "secretsmanager:DescribeSecret",
-              ],
-              "Effect": "Allow",
-              "Resource": {
-                "Ref": "TelegramWebhookSecret2F3DC73E",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "LambdaExecutionRoleDefaultPolicy6D69732F",
-        "Roles": [
-          {
-            "Ref": "LambdaExecutionRoleD5C26073",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "TelegramWebhookSecret2F3DC73E": {
-      "DeletionPolicy": "Delete",
-      "Properties": {
-        "Description": "Telegram webhook secret and bot token used for webhook validation and API calls",
-        "GenerateSecretString": {
-          "ExcludePunctuation": true,
-          "GenerateStringKey": "placeholder",
-          "PasswordLength": 16,
-          "SecretStringTemplate": "{}",
-        },
-        "Name": "/tg-assistant/telegram-secrets/prod",
-      },
-      "Type": "AWS::SecretsManager::Secret",
-      "UpdateReplacePolicy": "Delete",
-    },
-  },
-  "Rules": {
-    "CheckBootstrapVersion": {
-      "Assertions": [
-        {
-          "Assert": {
-            "Fn::Not": [
-              {
-                "Fn::Contains": [
-                  [
-                    "1",
-                    "2",
-                    "3",
-                    "4",
-                    "5",
-                  ],
-                  {
-                    "Ref": "BootstrapVersion",
-                  },
-                ],
-              },
-            ],
-          },
-          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
-        },
-      ],
-    },
-  },
-}
-`;
-
 exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected CloudFormation template (snapshot) 1`] = `
 {
   "Description": "Test stack",
   "Outputs": {
-    "ApiGatewaySourceArn": {
+    "ApiGatewayId": {
       "Value": {
-        "Ref": "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+        "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
       },
     },
     "FunctionArn": {
@@ -251,28 +37,12 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
-    "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
-      "Default": "/automation/dev/api-gateway/source-arn",
+    "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/api-gateway/id",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
   },
   "Resources": {
-    "ApiGatewayInvokePermission": {
-      "Properties": {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": {
-          "Fn::GetAtt": [
-            "Function76856677",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": {
-          "Ref": "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "Function76856677": {
       "DependsOn": [
         "LambdaExecutionRoleDefaultPolicy6D69732F",
@@ -313,6 +83,31 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
+    },
+    "FunctionApiGatewayInvokeB5014D23": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "Function76856677",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:execute-api:us-east-1:123456789012:",
+              {
+                "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
+              },
+              "/*/*/webhook",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "FunctionLogGroupBD1576D5": {
       "DeletionPolicy": "Delete",
@@ -396,6 +191,72 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
+    },
+    "WebhookRouteAD3745B5": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+        "AuthorizationType": "NONE",
+        "RouteKey": "POST /webhook",
+        "Target": {
+          "Fn::Join": [
+            "",
+            [
+              "integrations/",
+              {
+                "Ref": "WebhookRouteWebhookIntegration1E761AAA",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::ApiGatewayV2::Route",
+    },
+    "WebhookRouteWebhookIntegration1E761AAA": {
+      "Properties": {
+        "ApiId": {
+          "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+        "IntegrationType": "AWS_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "Function76856677",
+            "Arn",
+          ],
+        },
+        "PayloadFormatVersion": "1.0",
+      },
+      "Type": "AWS::ApiGatewayV2::Integration",
+    },
+    "WebhookRouteWebhookIntegrationPermission64ED9151": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "Function76856677",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:us-east-1:123456789012:",
+              {
+                "Ref": "SsmParameterValueautomationdevapigatewayidC96584B6F00A464EAD1953AFF4B05118Parameter",
+              },
+              "/*/*/webhook",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
   },
   "Rules": {
