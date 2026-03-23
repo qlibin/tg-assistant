@@ -100,6 +100,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
           Variables: Match.objectLike({
             NODE_ENV: 'production',
             TELEGRAM_SECRET_ARN: Match.anyValue(),
+            ENVIRONMENT: 'dev',
           }),
         }),
         Handler: 'index.handler',
@@ -142,31 +143,14 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     });
   });
 
-  test('does not create Lambda invoke permission when apiId is not provided (default)', () => {
+  test('creates Lambda invoke permission with SSM lookup when no context override', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev' });
 
     // Act
     const template = Template.fromStack(stack);
 
-    // Assert
-    template.resourceCountIs('AWS::Lambda::Permission', 0);
-  });
-
-  test('creates Lambda invoke permission for REST API and outputs SourceArn', () => {
-    // Arrange
-    const stack = makeStack({
-      envName: 'dev',
-      context: {
-        apiGatewaySourceArn:
-          'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
-      },
-    });
-
-    // Act
-    const template = Template.fromStack(stack);
-
-    // Assert permission exists and outputs include SourceArn and identifiers
+    // Assert: permission always exists (SSM dynamic reference as fallback)
     template.resourceCountIs('AWS::Lambda::Permission', 1);
     template.hasResourceProperties('AWS::Lambda::Permission', {
       Action: 'lambda:InvokeFunction',
@@ -179,19 +163,39 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     template.hasOutput('LambdaRegion', Match.anyValue());
   });
 
-  test('creates Lambda invoke permission for HTTP API (pattern covered by snapshot)', () => {
+  test('creates Lambda invoke permission with context override when provided', () => {
     // Arrange
     const stack = makeStack({
       envName: 'dev',
       context: {
-        apiGatewaySourceArn: 'arn:aws:execute-api:us-east-1:123456789012:abc123/beta/*',
+        apiGatewaySourceArn:
+          'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
       },
     });
 
     // Act
+    const template = Template.fromStack(stack);
+
+    // Assert: permission uses explicit source ARN from context
+    template.resourceCountIs('AWS::Lambda::Permission', 1);
+    template.hasResourceProperties('AWS::Lambda::Permission', {
+      Action: 'lambda:InvokeFunction',
+      Principal: 'apigateway.amazonaws.com',
+      SourceArn:
+        'arn:aws:execute-api:us-east-1:123456789012:abc123/prod/POST/qlibin-assistant-listener',
+    });
+
+    template.hasOutput('ApiGatewaySourceArn', Match.anyValue());
+  });
+
+  test('SSM fallback uses correct parameter path for environment', () => {
+    // Arrange
+    const stack = makeStack({ envName: 'prod' });
+
+    // Act
     const templateJson = Template.fromStack(stack).toJSON();
 
-    // Assert: snapshot captures SourceArn structure including tokens
+    // Assert: snapshot captures SSM dynamic reference structure
     expect(templateJson).toMatchSnapshot();
   });
 });

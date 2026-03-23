@@ -1,11 +1,13 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke permission for HTTP API (pattern covered by snapshot) 1`] = `
+exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) SSM fallback uses correct parameter path for environment 1`] = `
 {
   "Description": "Test stack",
   "Outputs": {
     "ApiGatewaySourceArn": {
-      "Value": "arn:aws:execute-api:us-east-1:123456789012:abc123/beta/*",
+      "Value": {
+        "Ref": "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+      },
     },
     "FunctionArn": {
       "Value": {
@@ -35,6 +37,10 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
       "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/prod/api-gateway/source-arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
   },
   "Resources": {
     "ApiGatewayInvokePermission": {
@@ -47,7 +53,9 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
           ],
         },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": "arn:aws:execute-api:us-east-1:123456789012:abc123/beta/*",
+        "SourceArn": {
+          "Ref": "SsmParameterValueautomationprodapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
       },
       "Type": "AWS::Lambda::Permission",
     },
@@ -66,6 +74,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
         },
         "Environment": {
           "Variables": {
+            "ENVIRONMENT": "prod",
             "NODE_ENV": "production",
             "TELEGRAM_SECRET_ARN": {
               "Ref": "TelegramWebhookSecret2F3DC73E",
@@ -129,7 +138,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
             ],
           },
         ],
-        "RoleName": "telegram-webhook-lambda-role-dev",
+        "RoleName": "telegram-webhook-lambda-role-prod",
       },
       "Type": "AWS::IAM::Role",
     },
@@ -169,7 +178,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) creates Lambda invoke
           "PasswordLength": 16,
           "SecretStringTemplate": "{}",
         },
-        "Name": "/tg-assistant/telegram-secrets/dev",
+        "Name": "/tg-assistant/telegram-secrets/prod",
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
@@ -209,6 +218,11 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
 {
   "Description": "Test stack",
   "Outputs": {
+    "ApiGatewaySourceArn": {
+      "Value": {
+        "Ref": "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+      },
+    },
     "FunctionArn": {
       "Value": {
         "Fn::GetAtt": [
@@ -237,8 +251,28 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/api-gateway/source-arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
   },
   "Resources": {
+    "ApiGatewayInvokePermission": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "Function76856677",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Ref": "SsmParameterValueautomationdevapigatewaysourcearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "Function76856677": {
       "DependsOn": [
         "LambdaExecutionRoleDefaultPolicy6D69732F",
@@ -254,6 +288,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         },
         "Environment": {
           "Variables": {
+            "ENVIRONMENT": "dev",
             "NODE_ENV": "production",
             "TELEGRAM_SECRET_ARN": {
               "Ref": "TelegramWebhookSecret2F3DC73E",

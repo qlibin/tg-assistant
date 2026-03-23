@@ -7,6 +7,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 
 export interface TgAssistantLambdaStackProps extends StackProps {
   environmentName: string;
@@ -66,6 +67,7 @@ export class TgAssistantLambdaStack extends Stack {
       environment: {
         NODE_ENV: 'production',
         TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
+        ENVIRONMENT: environmentName,
       },
       logGroup: new logs.LogGroup(this, 'FunctionLogGroup', {
         logGroupName: `/aws/lambda/${lambdaName}`,
@@ -77,33 +79,40 @@ export class TgAssistantLambdaStack extends Stack {
     // Grant Lambda permission to read the secret value
     telegramWebhookSecret.grantRead(fn);
 
-    // Context parameter for external API Gateway invoke permission (full SourceArn provided)
+    // Resolve API Gateway source ARN: explicit context override takes priority,
+    // otherwise read from SSM (exported by tg-assistant-infra ApiGatewayStack).
     const sourceArnRaw =
       apiGatewaySourceArn ?? (this.node.tryGetContext('apiGatewaySourceArn') as unknown);
-    const sourceArn =
+    const contextSourceArn =
       typeof sourceArnRaw === 'string' && sourceArnRaw.trim().length > 0
         ? sourceArnRaw.trim()
         : undefined;
 
-    if (sourceArn) {
-      new lambda.CfnPermission(this, 'ApiGatewayInvokePermission', {
-        action: 'lambda:InvokeFunction',
-        functionName: fn.functionArn,
-        principal: 'apigateway.amazonaws.com',
-        sourceArn,
-      });
-    } else {
-      Annotations.of(this).addWarning(
-        'API Gateway SourceArn not provided. Skipping Lambda invoke permission. Provide context: -c apiGatewaySourceArn=arn:aws:execute-api:...'
+    const sourceArn =
+      contextSourceArn ??
+      StringParameter.valueForStringParameter(
+        this,
+        `/automation/${environmentName}/api-gateway/source-arn`
+      );
+
+    if (contextSourceArn) {
+      Annotations.of(this).addInfo(
+        'Using API Gateway SourceArn from CDK context (explicit override). ' +
+          'Remove -c apiGatewaySourceArn to use SSM parameter instead.'
       );
     }
+
+    new lambda.CfnPermission(this, 'ApiGatewayInvokePermission', {
+      action: 'lambda:InvokeFunction',
+      functionName: fn.functionArn,
+      principal: 'apigateway.amazonaws.com',
+      sourceArn,
+    });
 
     new CfnOutput(this, 'FunctionName', { value: fn.functionName });
     new CfnOutput(this, 'FunctionArn', { value: fn.functionArn });
     new CfnOutput(this, 'LambdaRegion', { value: Stack.of(this).region });
-    if (sourceArn) {
-      new CfnOutput(this, 'ApiGatewaySourceArn', { value: sourceArn });
-    }
+    new CfnOutput(this, 'ApiGatewaySourceArn', { value: sourceArn });
     new CfnOutput(this, 'TelegramWebhookSecretArn', { value: telegramWebhookSecret.secretArn });
   }
 }
