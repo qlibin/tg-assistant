@@ -32,7 +32,7 @@
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.986.0",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.3.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
