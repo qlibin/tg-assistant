@@ -16,10 +16,10 @@ The project spans two repositories:
 ```
 ┌──────────────┐       ┌──────────────────┐       ┌──────────────────┐
 │  Telegram    │ POST  │  API Gateway     │       │  Lambda          │
-│  Bot API     │──────>│  tg.qlibin.com   │──────>│  telegram-       │
-│              │       │  /dev/qlibin-    │       │  webhook-lambda  │
-│              │<──────│  assistant-      │<──────│  -dev            │
-│  (sendMessage│       │  listener        │       │                  │
+│  Bot API     │──────>│  (HTTP API v2)   │──────>│  telegram-       │
+│              │       │  tg.qlibin.com   │       │  webhook-lambda  │
+│              │<──────│  /webhook        │<──────│  -dev            │
+│  (sendMessage│       │                  │       │                  │
 │   response)  │       └──────────────────┘       └────────┬─────────┘
 └──────────────┘                                           │
                                                            │ GetSecretValue
@@ -34,7 +34,7 @@ The project spans two repositories:
 
 ### Request Flow
 
-1. Telegram sends a POST request to `tg.qlibin.com/dev/qlibin-assistant-listener`
+1. Telegram sends a POST request to `tg.qlibin.com/webhook`
 2. API Gateway routes the request to the webhook Lambda
 3. Lambda validates the update structure and extracts the message
 4. Lambda echoes the message back via `TelegramService.sendMessage()` with metadata
@@ -59,10 +59,12 @@ The project spans two repositories:
 - IAM execution role
 - Secrets Manager secret
 - CloudWatch log group
-- API Gateway invoke permission (via CDK context parameter)
+- `POST /webhook` route on the shared API Gateway (self-service attachment)
+- Lambda integration (`HttpLambdaIntegration`, payload format 1.0)
+- Lambda invoke permission (auto-created by `HttpLambdaIntegration`)
 
 **Infra repo (`tg-assistant-infra`)** provisions via CDK:
-- API Gateway (REST API, custom domain `tg.qlibin.com`, stages, monitoring)
+- API Gateway (HTTP API v2, custom domain `tg.qlibin.com`, auto-deploy, monitoring)
 - SQS queues (Order + Result + DLQs)
 - IAM queue roles
 - KMS encryption key
@@ -82,9 +84,10 @@ All shared infrastructure references use SSM Parameter Store under `/automation/
 | `/automation/{env}/iam/webhook-role/arn`     | Webhook Lambda role ARN  |
 | `/automation/{env}/iam/worker-role/arn`      | Worker Lambda role ARN   |
 | `/automation/{env}/iam/feedback-role/arn`    | Feedback Lambda role ARN |
-| `/automation/{env}/api-gateway/rest-api-id`  | API Gateway REST API ID  |
-| `/automation/{env}/api-gateway/source-arn`   | API Gateway source ARN   |
+| `/automation/{env}/api-gateway/id`           | HTTP API v2 ID           |
+| `/automation/{env}/api-gateway/url`          | API Gateway URL          |
 | `/automation/{env}/api-gateway/domain`       | Custom domain name       |
+| `/automation/{env}/api-gateway/stage-name`   | Stage name               |
 | `/automation/{env}/monitoring/sns-topic/arn` | Monitoring SNS topic ARN |
 
 ### Deployment
