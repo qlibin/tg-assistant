@@ -3,6 +3,20 @@ name: CD
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.github/dependabot.yml'
+      - '.github/workflows/ci.yml'
+      - '.prettierrc'
+      - '.husky/**'
+      - '.junie/**'
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - '.env.example'
+      - '.idea/**'
+      - '.gitignore'
 
 concurrency:
   group: lambda-zip-${{ github.ref_name }}
