@@ -4,12 +4,38 @@
 
 The Telegram Assistant is a webhook-based bot running on AWS Lambda. It receives Telegram updates via API Gateway, processes them, and responds via the Telegram Bot API.
 
-The project spans two repositories:
+The project spans multiple repositories:
 
 | Repository                        | Purpose                                                                    |
 |-----------------------------------|----------------------------------------------------------------------------|
-| `qlibin/tg-assistant` (this repo) | Lambda application code and its CDK stack                                  |
+| `qlibin/tg-assistant` (this repo) | Webhook + Feedback lambdas, shared code, and CDK stack                     |
 | `qlibin/tg-assistant-infra`       | Shared infrastructure: API Gateway, SQS queues, IAM roles, KMS, monitoring |
+| `qlibin/tg-worker-*`             | Worker lambdas (one repo per worker type)                                  |
+
+### Repository Split Rationale
+
+Webhook and Feedback lambdas are **colocated** in this repo because they are tightly coupled:
+- Both use `TelegramService` to send messages to users
+- Both share Telegram types, secret management (bot token), and CDK patterns
+- Changes to one often require changes to the other
+
+Worker lambdas live in **separate repos** because they are loosely coupled:
+- They only interact via SQS message schemas (`OrderMessage`/`ResultMessage`)
+- They have wildly different dependency profiles (Playwright needs chromium, LLM agents need AI SDKs)
+- They may use different runtimes (container images vs zip packages)
+- Independent deploy cycles avoid blast radius from unrelated changes
+
+This repo is structured as an **npm workspaces monorepo**:
+
+```
+tg-assistant/
+├── packages/
+│   ├── common/          # Shared: TelegramService, types, validation, secrets, SQS schemas
+│   ├── webhook/         # Webhook Lambda (API Gateway → parse → Order Queue)
+│   └── feedback/        # Feedback Lambda (Result Queue → notify user via Telegram)
+├── infrastructure/      # CDK stack (provisions all lambdas in this repo)
+└── package.json         # Workspace root
+```
 
 ## Current State
 
@@ -146,7 +172,7 @@ The planned architecture adds SQS-based task processing with worker Lambdas:
 |------------------|----------------------------|------------------------------------|-----------------------------------------------------------------------------------------------|
 | Webhook Lambda   | tg-assistant               | `tg-assistant-{env}-webhook-role`  | Validate update, parse command, create OrderMessage, send to Order Queue, acknowledge to user |
 | Worker Lambda(s) | separate repos             | `tg-assistant-{env}-worker-role`   | Consume from Order Queue, execute task, produce ResultMessage to Result Queue                 |
-| Feedback Lambda  | tg-assistant (or separate) | `tg-assistant-{env}-feedback-role` | Consume from Result Queue, notify user via Telegram, requeue on failure, escalate             |
+| Feedback Lambda  | tg-assistant               | `tg-assistant-{env}-feedback-role` | Consume from Result Queue, notify user via Telegram, requeue on failure, escalate             |
 
 ### Message Schemas
 
