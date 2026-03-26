@@ -65,7 +65,7 @@ jspm_packages/
 temp/
 
 # Lambda packaging
-.lambda-staging/
+packages/*/bundle/
 lambda-*.zip
 
 # Runtime data

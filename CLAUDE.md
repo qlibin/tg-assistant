@@ -16,7 +16,7 @@ Telegram webhook bot running on AWS Lambda. The project has two modules:
 npm test                    # Run all tests
 npm test -- --testNamePattern="pattern"  # Run specific test by name
 npm run test:coverage       # Tests with coverage report
-npm run build               # TypeScript compile + fix imports
+npm run build               # TypeScript compile (type-check + declarations)
 npm run lint:fix            # ESLint auto-fix
 npm run type-check          # TypeScript type checking only
 npm run validate            # Full validation (build + lint + format + type-check + test)

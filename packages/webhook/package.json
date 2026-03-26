@@ -14,7 +14,7 @@
     "lint:fix": "eslint src/ tests/ --fix",
     "format": "prettier --write src/ tests/",
     "format:check": "prettier --check src/ tests/",
-    "package:lambda": "npm run build && node ../../scripts/package-lambda.js webhook"
+    "package:lambda": "npm run build && node ../../scripts/bundle-lambda.js webhook"
   },
   "dependencies": {
     "@tg-assistant/common": "*"
