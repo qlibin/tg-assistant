@@ -64,6 +64,9 @@ jspm_packages/
 .tmp/
 temp/
 
+# Lambda packaging
+.lambda-staging/
+
 # Runtime data
 pids/
 *.pid

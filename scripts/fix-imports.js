@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const distDir = path.join(__dirname, '../dist');
+const packagesDir = path.join(__dirname, '../packages');
 
 function walk(dir) {
   const files = fs.readdirSync(dir);
@@ -23,13 +23,13 @@ function walk(dir) {
 
 function fixImports(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
-  
+
   // Replace: import ... from './relative/path';
   // With: import ... from './relative/path.js';
   // Matches relative imports (starting with ./) that don't already have an extension
-  
+
   const regex = /(import\s+.*?\s+from\s+['"])(\.\.?\/.*?)(['"])/g;
-  
+
   let changed = false;
   const newContent = content.replace(regex, (match, p1, p2, p3) => {
     if (!p2.endsWith('.js') && !p2.endsWith('.mjs') && !p2.endsWith('.json')) {
@@ -40,11 +40,19 @@ function fixImports(filePath) {
   });
 
   if (changed) {
-    console.log(`Fixed imports in ${path.relative(distDir, filePath)}`);
+    console.log(`Fixed imports in ${path.relative(packagesDir, filePath)}`);
     fs.writeFileSync(filePath, newContent, 'utf8');
   }
 }
 
-console.log('Fixing ESM imports in dist...');
-walk(distDir);
+console.log('Fixing ESM imports in packages/*/dist...');
+
+const packageDirs = fs.readdirSync(packagesDir);
+for (const pkg of packageDirs) {
+  const distDir = path.join(packagesDir, pkg, 'dist');
+  if (fs.existsSync(distDir) && fs.statSync(distDir).isDirectory()) {
+    walk(distDir);
+  }
+}
+
 console.log('Done.');

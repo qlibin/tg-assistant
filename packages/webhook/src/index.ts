@@ -3,11 +3,15 @@ import {
   ApiGatewayProxyResult,
   TelegramMessage,
   TelegramUpdate,
-} from './types/telegram';
-import { ok, error } from './utils/http';
-import { isTelegramUpdate, safeJsonParse } from './utils/validation';
-import { TelegramService } from './services/telegram.service';
-import { getTelegramSecrets, hasConfiguredSecretEnv, isProduction } from './utils/telegram-secret';
+  ok,
+  error,
+  isTelegramUpdate,
+  safeJsonParse,
+  TelegramService,
+  getTelegramSecrets,
+  hasConfiguredSecretEnv,
+  isProduction,
+} from '@tg-assistant/common';
 
 function sanitizeEventForEcho(event: ApiGatewayProxyEvent): Record<string, unknown> {
   return {
