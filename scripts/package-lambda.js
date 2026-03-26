@@ -101,7 +101,7 @@ fs.writeFileSync(
 );
 
 // Zip
-console.log('Creating lambda.zip...');
+console.log(`Creating lambda-${packageName}.zip...`);
 execSync(`zip -r ${zipPath} .`, {
   cwd: stagingDir,
   stdio: 'inherit',
