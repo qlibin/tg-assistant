@@ -20,7 +20,7 @@ npm run build               # TypeScript compile + fix imports
 npm run lint:fix            # ESLint auto-fix
 npm run type-check          # TypeScript type checking only
 npm run validate            # Full validation (build + lint + format + type-check + test)
-npm run package:lambda      # Create lambda.zip for deployment
+npm run package:lambda      # Create lambda-webhook.zip for deployment
 ```
 
 ### Infrastructure (infrastructure/)
