@@ -1,12 +1,18 @@
 import { handler } from '../src/index';
-import { TelegramService } from '../src/services/telegram.service';
-import type { ApiGatewayProxyEvent, TelegramSentMessage } from '../src/types/telegram';
+import { TelegramService, clearTelegramSecretCache } from '@tg-assistant/common';
+import type { ApiGatewayProxyEvent, TelegramSentMessage } from '@tg-assistant/common';
 
-jest.mock('../src/services/telegram.service');
+jest.mock('@tg-assistant/common', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const actual = jest.requireActual('@tg-assistant/common');
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return { ...actual, TelegramService: { sendMessage: jest.fn() } };
+});
 
 describe('Lambda Telegram Webhook Handler', () => {
   beforeEach(() => {
     jest.resetAllMocks();
+    clearTelegramSecretCache();
     // Default env fallbacks for local development per unified secret util
     process.env.TELEGRAM_WEBHOOK_SECRET = 'TEST_WEBHOOK_SECRET';
     process.env.TELEGRAM_BOT_TOKEN = 'TEST_TOKEN';
