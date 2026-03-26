@@ -66,6 +66,7 @@ temp/
 
 # Lambda packaging
 .lambda-staging/
+lambda-*.zip
 
 # Runtime data
 pids/

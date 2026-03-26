@@ -16,7 +16,7 @@ if (!packageName) {
 const packageDir = path.join(rootDir, 'packages', packageName);
 const commonDir = path.join(rootDir, 'packages', 'common');
 const stagingDir = path.join(rootDir, '.lambda-staging');
-const zipPath = path.join(rootDir, 'lambda.zip');
+const zipPath = path.join(rootDir, `lambda-${packageName}.zip`);
 
 // Clean up
 if (fs.existsSync(stagingDir)) {
@@ -27,7 +27,7 @@ if (fs.existsSync(zipPath)) {
 }
 fs.mkdirSync(stagingDir, { recursive: true });
 
-// Copy webhook dist to staging root
+// Copy ${packageName}dist to staging root
 const packageDist = path.join(packageDir, 'dist');
 if (!fs.existsSync(packageDist)) {
   console.error(`dist/ not found in packages/${packageName}. Run "npm run build" first.`);
@@ -110,7 +110,7 @@ execSync(`zip -r ${zipPath} .`, {
 // Clean up staging
 fs.rmSync(stagingDir, { recursive: true });
 
-console.log(`Lambda package created: lambda.zip`);
+console.log(`Lambda package created: lambda-${packageName}.zip`);
 
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
