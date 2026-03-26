@@ -105,11 +105,11 @@ jobs:
       - name: Build and package ZIP
         run: npm run package:lambda
 
-      - name: Upload lambda.zip artifact
+      - name: Upload lambda-webhook.zip artifact
         uses: actions/upload-artifact@v4
         with:
           name: lambda-zip
-          path: lambda.zip
+          path: lambda-webhook.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -124,7 +124,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download lambda.zip artifact
+      - name: Download lambda-webhook.zip artifact
         uses: actions/download-artifact@v4
         with:
           name: lambda-zip
@@ -161,6 +161,6 @@ jobs:
         working-directory: infrastructure
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
-          LAMBDA_ZIP_PATH: "./assets/lambda.zip"
+          LAMBDA_ZIP_PATH: "./assets/lambda-webhook.zip"
         run: |
           npx cdk deploy --require-approval never -c environment=${ENV_NAME}
