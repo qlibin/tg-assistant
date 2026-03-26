@@ -7,6 +7,8 @@ yarn-error.log*
 # Production builds
 dist/
 build/
+packages/*/dist/
+packages/*/coverage/
 *.tsbuildinfo
 
 # Environment files

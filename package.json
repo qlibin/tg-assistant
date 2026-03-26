@@ -1,8 +1,12 @@
 {
-  "name": "typescript-junie-project",
+  "name": "tg-assistant",
   "version": "1.0.0",
+  "private": true,
   "description": "TypeScript project configured for Junie Agent in IntelliJ IDEA",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
