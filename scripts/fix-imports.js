@@ -28,7 +28,7 @@ function fixImports(filePath) {
   // With: import ... from './relative/path.js';
   // Matches relative imports (starting with ./) that don't already have an extension
 
-  const regex = /(import\s+.*?\s+from\s+['"])(\.\.?\/.*?)(['"])/g;
+  const regex = /((?:import|export)\s+.*?\s+from\s+['"])(\.\.?\/.*?)(['"])/g;
 
   let changed = false;
   const newContent = content.replace(regex, (match, p1, p2, p3) => {
