@@ -1,5 +1,5 @@
 module.exports = {
-  displayName: 'webhook',
+  displayName: 'feedback',
   preset: 'ts-jest',
   testEnvironment: 'node',
   collectCoverageFrom: [
