@@ -154,7 +154,7 @@ export class TgAssistantLambdaStack extends Stack {
     // Import Result Queue from SSM (provisioned by tg-assistant-infra)
     const resultQueueArn = StringParameter.valueForStringParameter(
       this,
-      `/automation/${environmentName}/sqs/result-queue/arn`
+      `/automation/${environmentName}/queues/result/arn`
     );
 
     const resultQueue = sqs.Queue.fromQueueArn(this, 'ResultQueue', resultQueueArn);

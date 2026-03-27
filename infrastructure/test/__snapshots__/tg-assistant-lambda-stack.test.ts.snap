@@ -54,8 +54,8 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       "Default": "/automation/dev/api-gateway/id",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
-    "SsmParameterValueautomationdevsqsresultqueuearnC96584B6F00A464EAD1953AFF4B05118Parameter": {
-      "Default": "/automation/dev/sqs/result-queue/arn",
+    "SsmParameterValueautomationdevqueuesresultarnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/queues/result/arn",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
   },
@@ -113,7 +113,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
     "FeedbackFunctionSqsEventSourceTestStackResultQueueB5219B42D50203DD": {
       "Properties": {
         "EventSourceArn": {
-          "Ref": "SsmParameterValueautomationdevsqsresultqueuearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+          "Ref": "SsmParameterValueautomationdevqueuesresultarnC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "FunctionName": {
           "Ref": "FeedbackFunctionA9DF1893",
@@ -145,7 +145,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
               ],
               "Effect": "Allow",
               "Resource": {
-                "Ref": "SsmParameterValueautomationdevsqsresultqueuearnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                "Ref": "SsmParameterValueautomationdevqueuesresultarnC96584B6F00A464EAD1953AFF4B05118Parameter",
               },
             },
           ],
