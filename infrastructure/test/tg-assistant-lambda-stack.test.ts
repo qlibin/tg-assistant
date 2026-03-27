@@ -159,7 +159,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
         FunctionName: 'telegram-feedback-lambda-dev',
         Runtime: 'nodejs22.x',
         MemorySize: 1024,
-        Timeout: 300,
+        Timeout: 144,
         Architectures: ['arm64'],
         Handler: 'index.handler',
       })

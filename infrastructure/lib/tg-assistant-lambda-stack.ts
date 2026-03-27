@@ -137,7 +137,7 @@ export class TgAssistantLambdaStack extends Stack {
       runtime: lambda.Runtime.NODEJS_22_X,
       architecture: lambda.Architecture.ARM_64,
       memorySize: 1024,
-      timeout: Duration.seconds(300),
+      timeout: Duration.seconds(144),
       role: feedbackExecRole,
       code: feedbackCode,
       handler,

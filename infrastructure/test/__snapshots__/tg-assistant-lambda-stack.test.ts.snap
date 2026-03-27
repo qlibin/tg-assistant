@@ -105,7 +105,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
           "Ref": "SsmParameterValueautomationdevrolesfeedbackarnC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "Runtime": "nodejs22.x",
-        "Timeout": 300,
+        "Timeout": 144,
       },
       "Type": "AWS::Lambda::Function",
     },
