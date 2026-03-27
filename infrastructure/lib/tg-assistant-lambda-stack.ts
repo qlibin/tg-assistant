@@ -32,15 +32,28 @@ export class TgAssistantLambdaStack extends Stack {
 
     const { environmentName, webhookLambdaName, feedbackLambdaName } = props;
 
-    // Execution role for Lambda (least privilege: basic execution role)
-    const webhookExecRole = new iam.Role(this, 'WebhookLambdaExecutionRole', {
-      roleName: `telegram-webhook-lambda-role-${environmentName}`,
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      description: 'Execution role for Lambda to write logs',
+    // Import pre-configured roles from SSM (provisioned by tg-assistant-infra)
+    // These roles already have SQS + KMS + CloudWatch Logs permissions
+    const webhookRoleArn = StringParameter.valueForStringParameter(
+      this,
+      `/automation/${environmentName}/roles/webhook/arn`
+    );
+    const feedbackRoleArn = StringParameter.valueForStringParameter(
+      this,
+      `/automation/${environmentName}/roles/feedback/arn`
+    );
+
+    const webhookExecRole = iam.Role.fromRoleArn(this, 'ImportedWebhookRole', webhookRoleArn, {
+      mutable: true,
+    });
+    const feedbackExecRole = iam.Role.fromRoleArn(this, 'ImportedFeedbackRole', feedbackRoleArn, {
+      mutable: true,
     });
 
-    webhookExecRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    // Import Order Queue URL from SSM (webhook sends OrderMessages to this queue)
+    const orderQueueUrl = StringParameter.valueForStringParameter(
+      this,
+      `/automation/${environmentName}/queues/order/url`
     );
 
     // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
@@ -82,6 +95,7 @@ export class TgAssistantLambdaStack extends Stack {
         NODE_ENV: 'production',
         TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
         ENVIRONMENT: environmentName,
+        ORDER_QUEUE_URL: orderQueueUrl,
       },
       logGroup: new logs.LogGroup(this, 'WebhookFunctionLogGroup', {
         logGroupName: `/aws/lambda/${webhookLambdaName}`,
@@ -117,16 +131,6 @@ export class TgAssistantLambdaStack extends Stack {
     });
 
     // ── Feedback Lambda ──────────────────────────────────────────────────
-
-    const feedbackExecRole = new iam.Role(this, 'FeedbackLambdaExecutionRole', {
-      roleName: `telegram-feedback-lambda-role-${environmentName}`,
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      description: 'Execution role for Feedback Lambda to write logs',
-    });
-
-    feedbackExecRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-    );
 
     const feedbackFn = new lambda.Function(this, 'FeedbackFunction', {
       functionName: feedbackLambdaName,

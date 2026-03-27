@@ -54,16 +54,27 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       "Default": "/automation/dev/api-gateway/id",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "SsmParameterValueautomationdevqueuesorderurlC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/queues/order/url",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
     "SsmParameterValueautomationdevqueuesresultarnC96584B6F00A464EAD1953AFF4B05118Parameter": {
       "Default": "/automation/dev/queues/result/arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValueautomationdevrolesfeedbackarnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/roles/feedback/arn",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+    "SsmParameterValueautomationdevroleswebhookarnC96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/automation/dev/roles/webhook/arn",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
   },
   "Resources": {
     "FeedbackFunctionA9DF1893": {
       "DependsOn": [
-        "FeedbackLambdaExecutionRoleDefaultPolicyFF1DD3A2",
-        "FeedbackLambdaExecutionRoleE103B9BF",
+        "ImportedFeedbackRolePolicyBBDE75FE",
       ],
       "Properties": {
         "Architectures": [
@@ -91,10 +102,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
         },
         "MemorySize": 1024,
         "Role": {
-          "Fn::GetAtt": [
-            "FeedbackLambdaExecutionRoleE103B9BF",
-            "Arn",
-          ],
+          "Ref": "SsmParameterValueautomationdevrolesfeedbackarnC96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "Runtime": "nodejs22.x",
         "Timeout": 300,
@@ -121,7 +129,7 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
       },
       "Type": "AWS::Lambda::EventSourceMapping",
     },
-    "FeedbackLambdaExecutionRoleDefaultPolicyFF1DD3A2": {
+    "ImportedFeedbackRolePolicyBBDE75FE": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
@@ -151,114 +159,36 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "FeedbackLambdaExecutionRoleDefaultPolicyFF1DD3A2",
+        "PolicyName": "ImportedFeedbackRolePolicyBBDE75FE",
         "Roles": [
           {
-            "Ref": "FeedbackLambdaExecutionRoleE103B9BF",
+            "Fn::Select": [
+              1,
+              {
+                "Fn::Split": [
+                  "/",
+                  {
+                    "Fn::Select": [
+                      5,
+                      {
+                        "Fn::Split": [
+                          ":",
+                          {
+                            "Ref": "SsmParameterValueautomationdevrolesfeedbackarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "FeedbackLambdaExecutionRoleE103B9BF": {
-      "Properties": {
-        "AssumeRolePolicyDocument": {
-          "Statement": [
-            {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "Description": "Execution role for Feedback Lambda to write logs",
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-        "RoleName": "telegram-feedback-lambda-role-dev",
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "TelegramWebhookSecret2F3DC73E": {
-      "DeletionPolicy": "Delete",
-      "Properties": {
-        "Description": "Telegram webhook secret and bot token used for webhook validation and API calls",
-        "GenerateSecretString": {
-          "ExcludePunctuation": true,
-          "GenerateStringKey": "placeholder",
-          "PasswordLength": 16,
-          "SecretStringTemplate": "{}",
-        },
-        "Name": "/tg-assistant/telegram-secrets/dev",
-      },
-      "Type": "AWS::SecretsManager::Secret",
-      "UpdateReplacePolicy": "Delete",
-    },
-    "WebhookFunction59DCB58D": {
-      "DependsOn": [
-        "WebhookLambdaExecutionRoleDefaultPolicy2D6F1F56",
-        "WebhookLambdaExecutionRoleF6CB7A70",
-      ],
-      "Properties": {
-        "Architectures": [
-          "arm64",
-        ],
-        "Code": {
-          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
-          "S3Key": "1ebc9d3ac2033816c4abb63e4afd69d350b4aba8704cc9236b82ea520b74f4b0.zip",
-        },
-        "Environment": {
-          "Variables": {
-            "ENVIRONMENT": "dev",
-            "NODE_ENV": "production",
-            "TELEGRAM_SECRET_ARN": {
-              "Ref": "TelegramWebhookSecret2F3DC73E",
-            },
-          },
-        },
-        "FunctionName": "telegram-webhook-lambda-dev",
-        "Handler": "index.handler",
-        "LoggingConfig": {
-          "LogGroup": {
-            "Ref": "WebhookFunctionLogGroup6D91472A",
-          },
-        },
-        "MemorySize": 1024,
-        "Role": {
-          "Fn::GetAtt": [
-            "WebhookLambdaExecutionRoleF6CB7A70",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs22.x",
-        "Timeout": 300,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "WebhookFunctionLogGroup6D91472A": {
-      "DeletionPolicy": "Delete",
-      "Properties": {
-        "LogGroupName": "/aws/lambda/telegram-webhook-lambda-dev",
-        "RetentionInDays": 30,
-      },
-      "Type": "AWS::Logs::LogGroup",
-      "UpdateReplacePolicy": "Delete",
-    },
-    "WebhookLambdaExecutionRoleDefaultPolicy2D6F1F56": {
+    "ImportedWebhookRolePolicy7B696FEC": {
       "Properties": {
         "PolicyDocument": {
           "Statement": [
@@ -275,47 +205,141 @@ exports[`TgAssistantLambdaStack (ZIP-based Node.js Lambda) synthesizes expected 
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "WebhookLambdaExecutionRoleDefaultPolicy2D6F1F56",
+        "PolicyName": "ImportedWebhookRolePolicy7B696FEC",
         "Roles": [
           {
-            "Ref": "WebhookLambdaExecutionRoleF6CB7A70",
+            "Fn::Select": [
+              1,
+              {
+                "Fn::Split": [
+                  "/",
+                  {
+                    "Fn::Select": [
+                      5,
+                      {
+                        "Fn::Split": [
+                          ":",
+                          {
+                            "Ref": "SsmParameterValueautomationdevroleswebhookarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "WebhookLambdaExecutionRoleF6CB7A70": {
+    "TelegramWebhookSecret2F3DC73E": {
+      "DeletionPolicy": "Delete",
       "Properties": {
-        "AssumeRolePolicyDocument": {
+        "Description": "Telegram webhook secret and bot token used for webhook validation and API calls",
+        "GenerateSecretString": {
+          "ExcludePunctuation": true,
+          "GenerateStringKey": "placeholder",
+          "PasswordLength": 16,
+          "SecretStringTemplate": "{}",
+        },
+        "Name": "/tg-assistant/telegram-secrets/dev",
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "TelegramWebhookSecretPolicy4F5B90D4": {
+      "Properties": {
+        "ResourcePolicy": {
           "Statement": [
             {
-              "Action": "sts:AssumeRole",
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
               "Effect": "Allow",
               "Principal": {
-                "Service": "lambda.amazonaws.com",
+                "AWS": {
+                  "Ref": "SsmParameterValueautomationdevroleswebhookarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                },
+              },
+              "Resource": {
+                "Ref": "TelegramWebhookSecret2F3DC73E",
+              },
+            },
+            {
+              "Action": [
+                "secretsmanager:GetSecretValue",
+                "secretsmanager:DescribeSecret",
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "SsmParameterValueautomationdevrolesfeedbackarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+                },
+              },
+              "Resource": {
+                "Ref": "TelegramWebhookSecret2F3DC73E",
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "Description": "Execution role for Lambda to write logs",
-        "ManagedPolicyArns": [
-          {
-            "Fn::Join": [
-              "",
-              [
-                "arn:",
-                {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-        "RoleName": "telegram-webhook-lambda-role-dev",
+        "SecretId": {
+          "Ref": "TelegramWebhookSecret2F3DC73E",
+        },
       },
-      "Type": "AWS::IAM::Role",
+      "Type": "AWS::SecretsManager::ResourcePolicy",
+    },
+    "WebhookFunction59DCB58D": {
+      "DependsOn": [
+        "ImportedWebhookRolePolicy7B696FEC",
+      ],
+      "Properties": {
+        "Architectures": [
+          "arm64",
+        ],
+        "Code": {
+          "S3Bucket": "cdk-hnb659fds-assets-123456789012-us-east-1",
+          "S3Key": "1ebc9d3ac2033816c4abb63e4afd69d350b4aba8704cc9236b82ea520b74f4b0.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "ENVIRONMENT": "dev",
+            "NODE_ENV": "production",
+            "ORDER_QUEUE_URL": {
+              "Ref": "SsmParameterValueautomationdevqueuesorderurlC96584B6F00A464EAD1953AFF4B05118Parameter",
+            },
+            "TELEGRAM_SECRET_ARN": {
+              "Ref": "TelegramWebhookSecret2F3DC73E",
+            },
+          },
+        },
+        "FunctionName": "telegram-webhook-lambda-dev",
+        "Handler": "index.handler",
+        "LoggingConfig": {
+          "LogGroup": {
+            "Ref": "WebhookFunctionLogGroup6D91472A",
+          },
+        },
+        "MemorySize": 1024,
+        "Role": {
+          "Ref": "SsmParameterValueautomationdevroleswebhookarnC96584B6F00A464EAD1953AFF4B05118Parameter",
+        },
+        "Runtime": "nodejs22.x",
+        "Timeout": 300,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "WebhookFunctionLogGroup6D91472A": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/telegram-webhook-lambda-dev",
+        "RetentionInDays": 30,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Delete",
     },
     "WebhookRouteAD3745B5": {
       "Properties": {

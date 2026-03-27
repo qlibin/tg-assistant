@@ -102,6 +102,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
             NODE_ENV: 'production',
             TELEGRAM_SECRET_ARN: Match.anyValue(),
             ENVIRONMENT: 'dev',
+            ORDER_QUEUE_URL: Match.anyValue(),
           }),
         }),
         Handler: 'index.handler',
@@ -109,26 +110,26 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     );
   });
 
-  test('execution role trusts Lambda service and has AWSLambdaBasicExecutionRole', () => {
+  test('imports pre-configured roles from SSM instead of creating self-managed roles', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev' });
     const template = Template.fromStack(stack);
 
-    // Assert trust policy
-    template.hasResourceProperties('AWS::IAM::Role', {
-      AssumeRolePolicyDocument: {
+    // Assert: no self-managed IAM roles are created (roles are imported from SSM)
+    template.resourceCountIs('AWS::IAM::Role', 0);
+
+    // Assert: IAM policies exist for Secrets Manager grantRead on imported roles
+    template.hasResourceProperties('AWS::IAM::Policy', {
+      PolicyDocument: Match.objectLike({
         Statement: Match.arrayWith([
           Match.objectLike({
-            Principal: { Service: 'lambda.amazonaws.com' },
-            Action: 'sts:AssumeRole',
+            Action: Match.arrayWith([
+              'secretsmanager:GetSecretValue',
+              'secretsmanager:DescribeSecret',
+            ]),
           }),
         ]),
-      },
-    });
-
-    // Assert managed policy attachment via ManagedPolicyArns on the Role
-    template.hasResourceProperties('AWS::IAM::Role', {
-      ManagedPolicyArns: Match.anyValue(),
+      }),
     });
   });
 
