@@ -19,9 +19,10 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': 'ts-jest',
+    '^.+\\.[tj]s$': 'ts-jest',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
+  transformIgnorePatterns: ['node_modules/(?!@qlibin/tg-assistant-contracts)'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@tg-assistant/common$': '<rootDir>/../common/src/index.ts',

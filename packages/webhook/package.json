@@ -17,6 +17,8 @@
     "package:lambda": "npm run build && node ../../scripts/bundle-lambda.js webhook"
   },
   "dependencies": {
+    "@aws-sdk/client-sqs": "^3.750.0",
+    "@qlibin/tg-assistant-contracts": "^1.1.0",
     "@tg-assistant/common": "*"
   }
 }
