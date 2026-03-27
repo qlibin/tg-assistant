@@ -34,7 +34,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
       env: baseEnv,
       description: 'Test stack',
       environmentName: overrides?.envName ?? 'dev',
-      lambdaName: overrides?.lambdaName ?? 'telegram-webhook-lambda-dev',
+      webhookLambdaName: overrides?.lambdaName ?? 'telegram-webhook-lambda-dev',
       feedbackLambdaName: overrides?.feedbackLambdaName ?? 'telegram-feedback-lambda-dev',
       tags: { app: 'telegram-webhook', env: overrides?.envName ?? 'dev' },
     });
@@ -206,8 +206,8 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
 
     // Assert: outputs
     template.hasOutput('ApiGatewayId', Match.anyValue());
-    template.hasOutput('FunctionArn', Match.anyValue());
-    template.hasOutput('FunctionName', Match.anyValue());
+    template.hasOutput('WebhookFunctionArn', Match.anyValue());
+    template.hasOutput('WebhookFunctionName', Match.anyValue());
     template.hasOutput('LambdaRegion', Match.anyValue());
   });
 });

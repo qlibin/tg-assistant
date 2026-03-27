@@ -49,7 +49,7 @@ const stack = new TgAssistantLambdaStack(app, `TgAssistantLambdaStack-${envCfg.e
   env: { account: envCfg.account, region: envCfg.region },
   description: `TG Assistant Lambda (${envCfg.envName}) from ZIP asset`,
   environmentName: envCfg.envName,
-  lambdaName: envCfg.lambdaName,
+  webhookLambdaName: envCfg.lambdaName,
   feedbackLambdaName: envCfg.feedbackLambdaName,
   tags: envCfg.tags ?? {},
 });
