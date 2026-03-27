@@ -21,7 +21,9 @@
     "prepare": "husky install",
     "pre-commit": "lint-staged",
     "validate": "npm run build && npm run lint && npm run format:check && npm run type-check && npm run test",
-    "package:lambda": "npm run build && node scripts/bundle-lambda.js webhook"
+    "package:lambda": "npm run build && node scripts/bundle-lambda.js webhook",
+    "package:lambda:webhook": "npm run build && node scripts/bundle-lambda.js webhook",
+    "package:lambda:feedback": "npm run build && node scripts/bundle-lambda.js feedback"
   },
   "keywords": [
     "typescript",

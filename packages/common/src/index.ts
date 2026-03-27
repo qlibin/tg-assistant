@@ -35,6 +35,18 @@ export {
 } from './utils/telegram-secret';
 export type { TelegramSecretsShape, TelegramSecretsResolved } from './utils/telegram-secret';
 
+// SQS types and schemas
+export type {
+  SqsMessageAttribute,
+  SqsRecord,
+  SqsEvent,
+  SqsBatchResponse,
+  TaskType,
+  OrderMessage,
+  ResultMessage,
+} from './types/sqs';
+export { TaskTypeSchema, OrderMessageSchema, ResultMessageSchema } from './types/sqs';
+
 // Services
 export { TelegramService } from './services/telegram.service';
 export type { SendMessageParams } from './services/telegram.service';

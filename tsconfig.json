@@ -2,6 +2,7 @@
   "files": [],
   "references": [
     { "path": "packages/common" },
-    { "path": "packages/webhook" }
+    { "path": "packages/webhook" },
+    { "path": "packages/feedback" }
   ]
 }
