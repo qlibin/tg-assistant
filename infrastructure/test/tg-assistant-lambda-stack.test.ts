@@ -14,6 +14,7 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     overrides?: Partial<{
       envName: string;
       lambdaName: string;
+      feedbackLambdaName: string;
       setZipPath: boolean;
     }>
   ) => {
@@ -21,16 +22,20 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
 
     if (overrides?.setZipPath) {
       // Provide a directory path as asset source so CDK can hash it without requiring a real ZIP
-      process.env.LAMBDA_ZIP_PATH = fs.mkdtempSync(path.join(os.tmpdir(), 'asset-'));
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'asset-'));
+      process.env.LAMBDA_WEBHOOK_ZIP_PATH = tmpDir;
+      process.env.LAMBDA_FEEDBACK_ZIP_PATH = tmpDir;
     } else {
-      delete process.env.LAMBDA_ZIP_PATH;
+      delete process.env.LAMBDA_WEBHOOK_ZIP_PATH;
+      delete process.env.LAMBDA_FEEDBACK_ZIP_PATH;
     }
 
     return new TgAssistantLambdaStack(app, 'TestStack', {
       env: baseEnv,
       description: 'Test stack',
       environmentName: overrides?.envName ?? 'dev',
-      lambdaName: overrides?.lambdaName ?? 'telegram-webhook-lambda-dev',
+      webhookLambdaName: overrides?.lambdaName ?? 'telegram-webhook-lambda-dev',
+      feedbackLambdaName: overrides?.feedbackLambdaName ?? 'telegram-feedback-lambda-dev',
       tags: { app: 'telegram-webhook', env: overrides?.envName ?? 'dev' },
     });
   };
@@ -139,6 +144,42 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
     });
   });
 
+  test('creates feedback Lambda with SQS event source and log group', () => {
+    // Arrange
+    const stack = makeStack({ envName: 'dev', setZipPath: true });
+
+    // Act
+    const template = Template.fromStack(stack);
+
+    // Assert: feedback Lambda function exists with expected name
+    template.hasResourceProperties(
+      'AWS::Lambda::Function',
+      Match.objectLike({
+        FunctionName: 'telegram-feedback-lambda-dev',
+        Runtime: 'nodejs22.x',
+        MemorySize: 1024,
+        Timeout: 300,
+        Architectures: ['arm64'],
+        Handler: 'index.handler',
+      })
+    );
+
+    // Assert: feedback log group with 30-day retention
+    template.hasResourceProperties('AWS::Logs::LogGroup', {
+      LogGroupName: '/aws/lambda/telegram-feedback-lambda-dev',
+      RetentionInDays: 30,
+    });
+
+    // Assert: SQS event source mapping exists
+    template.hasResourceProperties('AWS::Lambda::EventSourceMapping', {
+      EventSourceArn: Match.anyValue(),
+    });
+
+    // Assert: feedback CfnOutputs
+    template.hasOutput('FeedbackFunctionName', Match.anyValue());
+    template.hasOutput('FeedbackFunctionArn', Match.anyValue());
+  });
+
   test('creates webhook route, integration, and invoke permission on shared API', () => {
     // Arrange
     const stack = makeStack({ envName: 'dev' });
@@ -165,8 +206,8 @@ describe('TgAssistantLambdaStack (ZIP-based Node.js Lambda)', () => {
 
     // Assert: outputs
     template.hasOutput('ApiGatewayId', Match.anyValue());
-    template.hasOutput('FunctionArn', Match.anyValue());
-    template.hasOutput('FunctionName', Match.anyValue());
+    template.hasOutput('WebhookFunctionArn', Match.anyValue());
+    template.hasOutput('WebhookFunctionName', Match.anyValue());
     template.hasOutput('LambdaRegion', Match.anyValue());
   });
 });
