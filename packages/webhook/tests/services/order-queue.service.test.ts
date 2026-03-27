@@ -1,10 +1,9 @@
 import { SendMessageCommand, SendMessageCommandInput } from '@aws-sdk/client-sqs';
-import { OrderQueueService } from '../../src/services/order-queue.service';
-import type { OrderMessage } from '@tg-assistant/common';
+import { OrderQueueService, type SendOrderInput } from '../../src/services/order-queue.service';
 
 const QUEUE_URL = 'https://sqs.eu-central-1.amazonaws.com/123456789012/test-order-queue';
 
-function makeOrder(overrides?: Partial<OrderMessage>): OrderMessage {
+function makeOrder(overrides?: Partial<SendOrderInput>): SendOrderInput {
   return {
     orderId: 'order-001',
     taskType: 'playwright-scraping',
@@ -43,7 +42,7 @@ describe('OrderQueueService', () => {
     const input = getSentInput(sendMock);
     expect(input.QueueUrl).toBe(QUEUE_URL);
 
-    const body = JSON.parse(input.MessageBody!) as OrderMessage;
+    const body = JSON.parse(input.MessageBody!) as SendOrderInput;
     expect(body.orderId).toBe('order-001');
     expect(body.taskType).toBe('playwright-scraping');
   });
@@ -92,7 +91,7 @@ describe('OrderQueueService', () => {
     await service.sendOrder(order);
 
     const input = getSentInput(sendMock);
-    const body = JSON.parse(input.MessageBody!) as OrderMessage;
+    const body = JSON.parse(input.MessageBody!) as SendOrderInput;
     expect(body.schemaVersion).toBe('1.0.0');
   });
 
@@ -102,7 +101,7 @@ describe('OrderQueueService', () => {
     await service.sendOrder(order);
 
     const input = getSentInput(sendMock);
-    const body = JSON.parse(input.MessageBody!) as OrderMessage;
+    const body = JSON.parse(input.MessageBody!) as SendOrderInput;
     expect(body.schemaVersion).toBe('1.0.0');
   });
 

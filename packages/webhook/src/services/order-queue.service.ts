@@ -1,7 +1,12 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
-import type { OrderMessage } from '@tg-assistant/common';
+import { SCHEMA_VERSION, type OrderMessage } from '@qlibin/tg-assistant-contracts';
 
-export const SCHEMA_VERSION = '1.0.0';
+export { SCHEMA_VERSION };
+
+/** OrderMessage with schemaVersion optional — the service defaults it to SCHEMA_VERSION. */
+export type SendOrderInput = Omit<OrderMessage, 'schemaVersion'> & {
+  schemaVersion?: typeof SCHEMA_VERSION;
+};
 
 export class OrderQueueService {
   private readonly client: SQSClient;
@@ -12,22 +17,22 @@ export class OrderQueueService {
     this.client = client ?? new SQSClient();
   }
 
-  async sendOrder(order: OrderMessage): Promise<string> {
+  async sendOrder(input: SendOrderInput): Promise<string> {
     const messageBody: OrderMessage = {
-      ...order,
-      schemaVersion: order.schemaVersion ?? SCHEMA_VERSION,
+      ...input,
+      schemaVersion: input.schemaVersion ?? SCHEMA_VERSION,
     };
 
     const messageAttributes: Record<string, { DataType: string; StringValue: string }> = {
-      TaskType: { DataType: 'String', StringValue: order.taskType },
-      Priority: { DataType: 'String', StringValue: order.priority ?? 'normal' },
-      UserId: { DataType: 'String', StringValue: order.userId },
+      TaskType: { DataType: 'String', StringValue: input.taskType },
+      Priority: { DataType: 'String', StringValue: input.priority ?? 'normal' },
+      UserId: { DataType: 'String', StringValue: input.userId },
     };
 
-    if (order.correlationId) {
+    if (input.correlationId) {
       messageAttributes.CorrelationId = {
         DataType: 'String',
-        StringValue: order.correlationId,
+        StringValue: input.correlationId,
       };
     }
 
