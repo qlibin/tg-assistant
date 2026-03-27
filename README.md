@@ -2,6 +2,17 @@
 
 Telegram personal assistant bot running on AWS Lambda, deployed via CDK.
 
+## Workspace Structure
+
+This is an npm workspaces monorepo with three packages:
+
+| Package | Description |
+|---------|-------------|
+| [`packages/common`](packages/common) | Shared library — TelegramService, types, validation, secret management, SQS schemas |
+| [`packages/webhook`](packages/webhook) | Webhook Lambda — receives Telegram updates via API Gateway |
+| [`packages/feedback`](packages/feedback) | Feedback Lambda — consumes SQS Result Queue, notifies users via Telegram |
+| [`infrastructure/`](infrastructure) | AWS CDK v2 stack provisioning both Lambdas |
+
 ## Quick Start
 
 ```bash
@@ -9,9 +20,16 @@ npm install
 npm run validate   # build + lint + format + type-check + test
 ```
 
+## Packaging
+
+```bash
+npm run package:lambda:webhook    # produces lambda-webhook.zip
+npm run package:lambda:feedback   # produces lambda-feedback.zip
+```
+
 ## Deployment
 
-Both the Lambda application and its infrastructure deploy automatically via GitHub Actions on push to `main`.
+Both Lambdas and infrastructure deploy automatically via GitHub Actions on push to `main`.
 
 Manual CDK deploy:
 

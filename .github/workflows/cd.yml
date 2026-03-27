@@ -102,14 +102,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and package ZIP
-        run: npm run package:lambda
+      - name: Build and package ZIPs
+        run: |
+          npm run package:lambda:webhook
+          npm run package:lambda:feedback
 
-      - name: Upload lambda-webhook.zip artifact
+      - name: Upload lambda zips
         uses: actions/upload-artifact@v4
         with:
-          name: lambda-zip
-          path: lambda-webhook.zip
+          name: lambda-zips
+          path: |
+            lambda-webhook.zip
+            lambda-feedback.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -124,10 +128,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download lambda-webhook.zip artifact
+      - name: Download lambda zips
         uses: actions/download-artifact@v4
         with:
-          name: lambda-zip
+          name: lambda-zips
           path: infrastructure/assets
 
       - name: Configure AWS credentials
@@ -161,6 +165,7 @@ jobs:
         working-directory: infrastructure
         env:
           ENV_NAME: ${{ env.ENV_NAME }}
-          LAMBDA_ZIP_PATH: "./assets/lambda-webhook.zip"
+          LAMBDA_WEBHOOK_ZIP_PATH: "./assets/lambda-webhook.zip"
+          LAMBDA_FEEDBACK_ZIP_PATH: "./assets/lambda-feedback.zip"
         run: |
           npx cdk deploy --require-approval never -c environment=${ENV_NAME}

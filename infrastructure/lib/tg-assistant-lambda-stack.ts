@@ -7,6 +7,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import {
   HttpApi,
@@ -20,6 +22,7 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 export interface TgAssistantLambdaStackProps extends StackProps {
   environmentName: string;
   lambdaName: string;
+  feedbackLambdaName: string;
   tags?: Record<string, string>;
 }
 
@@ -27,7 +30,7 @@ export class TgAssistantLambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: TgAssistantLambdaStackProps) {
     super(scope, id, props);
 
-    const { environmentName, lambdaName } = props;
+    const { environmentName, lambdaName, feedbackLambdaName } = props;
 
     // Execution role for Lambda (least privilege: basic execution role)
     const execRole = new iam.Role(this, 'LambdaExecutionRole', {
@@ -43,8 +46,12 @@ export class TgAssistantLambdaStack extends Stack {
     // Choose code source: use pre-built ZIP when provided by CI, otherwise fallback to local asset
     // We use a stable path to avoid 'fromInline' vs 'fromAsset' structural noise in diffs.
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const lambdaZipPath = process.env.LAMBDA_ZIP_PATH || path.join(__dirname, '../test/fixtures');
-    const code = lambda.Code.fromAsset(lambdaZipPath);
+    const webhookZipPath =
+      process.env.LAMBDA_WEBHOOK_ZIP_PATH || path.join(__dirname, '../test/fixtures');
+    const feedbackZipPath =
+      process.env.LAMBDA_FEEDBACK_ZIP_PATH || path.join(__dirname, '../test/fixtures');
+    const webhookCode = lambda.Code.fromAsset(webhookZipPath);
+    const feedbackCode = lambda.Code.fromAsset(feedbackZipPath);
     const handler = 'index.handler';
 
     // Create or reference the unified Telegram secrets per environment
@@ -69,7 +76,7 @@ export class TgAssistantLambdaStack extends Stack {
       memorySize: 1024,
       timeout: Duration.seconds(300),
       role: execRole,
-      code,
+      code: webhookCode,
       handler,
       environment: {
         NODE_ENV: 'production',
@@ -109,10 +116,59 @@ export class TgAssistantLambdaStack extends Stack {
       integration: webhookIntegration,
     });
 
+    // ── Feedback Lambda ──────────────────────────────────────────────────
+
+    const feedbackExecRole = new iam.Role(this, 'FeedbackLambdaExecutionRole', {
+      roleName: `telegram-feedback-lambda-role-${environmentName}`,
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+      description: 'Execution role for Feedback Lambda to write logs',
+    });
+
+    feedbackExecRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+
+    const feedbackFn = new lambda.Function(this, 'FeedbackFunction', {
+      functionName: feedbackLambdaName,
+      runtime: lambda.Runtime.NODEJS_22_X,
+      architecture: lambda.Architecture.ARM_64,
+      memorySize: 1024,
+      timeout: Duration.seconds(300),
+      role: feedbackExecRole,
+      code: feedbackCode,
+      handler,
+      environment: {
+        NODE_ENV: 'production',
+        TELEGRAM_SECRET_ARN: telegramWebhookSecret.secretArn,
+        ENVIRONMENT: environmentName,
+      },
+      logGroup: new logs.LogGroup(this, 'FeedbackFunctionLogGroup', {
+        logGroupName: `/aws/lambda/${feedbackLambdaName}`,
+        retention: logs.RetentionDays.ONE_MONTH,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    });
+
+    telegramWebhookSecret.grantRead(feedbackFn);
+
+    // Import Result Queue from SSM (provisioned by tg-assistant-infra)
+    const resultQueueArn = StringParameter.valueForStringParameter(
+      this,
+      `/automation/${environmentName}/sqs/result-queue/arn`
+    );
+
+    const resultQueue = sqs.Queue.fromQueueArn(this, 'ResultQueue', resultQueueArn);
+
+    feedbackFn.addEventSource(new SqsEventSource(resultQueue));
+
+    // ── Outputs ─────────────────────────────────────────────────────────
+
     new CfnOutput(this, 'FunctionName', { value: fn.functionName });
     new CfnOutput(this, 'FunctionArn', { value: fn.functionArn });
     new CfnOutput(this, 'LambdaRegion', { value: Stack.of(this).region });
     new CfnOutput(this, 'ApiGatewayId', { value: apiId });
     new CfnOutput(this, 'TelegramWebhookSecretArn', { value: telegramWebhookSecret.secretArn });
+    new CfnOutput(this, 'FeedbackFunctionName', { value: feedbackFn.functionName });
+    new CfnOutput(this, 'FeedbackFunctionArn', { value: feedbackFn.functionArn });
   }
 }

@@ -4,23 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Telegram webhook bot running on AWS Lambda. The project has two modules:
-- **Root**: Lambda application code (TypeScript)
-- **infrastructure/**: AWS CDK v2 stack that provisions the Lambda, IAM roles, Secrets Manager, and CloudWatch logs
+Telegram personal assistant bot running on AWS Lambda, structured as an **npm workspaces monorepo**:
+
+| Package | Description |
+|---------|-------------|
+| `packages/common` | Shared library: TelegramService, types, validation, secret management, SQS schemas |
+| `packages/webhook` | Webhook Lambda — receives Telegram updates via API Gateway, parses commands |
+| `packages/feedback` | Feedback Lambda — consumes SQS Result Queue, notifies users via Telegram |
+| `infrastructure/` | AWS CDK v2 stack provisioning both Lambdas, IAM roles, Secrets Manager, CloudWatch logs |
 
 ## Common Commands
 
-### Lambda Application (root)
+### Workspace Root
 
 ```bash
-npm test                    # Run all tests
-npm test -- --testNamePattern="pattern"  # Run specific test by name
-npm run test:coverage       # Tests with coverage report
-npm run build               # TypeScript compile (type-check + declarations)
-npm run lint:fix            # ESLint auto-fix
-npm run type-check          # TypeScript type checking only
-npm run validate            # Full validation (build + lint + format + type-check + test)
-npm run package:lambda      # Create lambda-webhook.zip for deployment
+npm test                          # Run all workspace tests
+npm run build                     # TypeScript project build (tsc --build)
+npm run type-check                # TypeScript type checking
+npm run lint:fix                  # ESLint auto-fix across all packages
+npm run validate                  # Full validation (build + lint + format + type-check + test)
+npm run package:lambda:webhook    # Bundle lambda-webhook.zip
+npm run package:lambda:feedback   # Bundle lambda-feedback.zip
 ```
 
 ### Infrastructure (infrastructure/)
@@ -35,39 +39,56 @@ npm run diff                # Preview infrastructure changes
 npm run validate            # Full validation
 ```
 
-### CDK Deployment with API Gateway Permission
+### CDK Deployment
 
 ```bash
-npx cdk deploy -c apiGatewaySourceArn=arn:aws:execute-api:REGION:ACCOUNT:API_ID/STAGE/METHOD/PATH
+cd infrastructure
+npx cdk deploy -c environment=dev
 ```
 
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│  API Gateway (external)  →  Lambda  →  Telegram Bot API      │
-│                                ↓                              │
-│                         Secrets Manager                       │
-│                    (bot token, webhook secret)                │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────┐       ┌──────────────┐       ┌──────────────────────┐
+│  Telegram    │ POST  │ API Gateway  │       │  Webhook Lambda      │
+│  Bot API     │──────>│ (HTTP API v2)│──────>│  packages/webhook    │
+│              │       └──────────────┘       └──────────┬───────────┘
+│              │                                         │
+│              │                              ┌──────────▼───────────┐
+│              │                              │    Result Queue      │
+│              │                              │    (SQS)             │
+│              │                              └──────────┬───────────┘
+│              │                                         │ SQS Event Source
+│              │                              ┌──────────▼───────────┐
+│  sendMessage │<─────────────────────────────│  Feedback Lambda     │
+│              │                              │  packages/feedback   │
+└──────────────┘                              └──────────────────────┘
+                                                         │
+                                              ┌──────────▼───────────┐
+                                              │  Secrets Manager     │
+                                              │  (bot token, secret) │
+                                              └──────────────────────┘
 ```
 
-- **Entry point**: `src/index.ts` exports `handler` for Lambda
-- **Services**: `src/services/` - Business logic (e.g., `TelegramService` for API calls)
-- **Utils**: `src/utils/` - HTTP responses, validation, secret management
-- **Types**: `src/types/` - TypeScript interfaces for Telegram API
+### Key Files
+
+- **Webhook entry**: `packages/webhook/src/index.ts` — Lambda handler
+- **Feedback entry**: `packages/feedback/src/index.ts` — Lambda handler
+- **Shared services**: `packages/common/src/services/` — TelegramService, etc.
+- **Shared types**: `packages/common/src/types/` — Telegram API interfaces, SQS schemas
 - **CDK Stack**: `infrastructure/lib/tg-assistant-lambda-stack.ts`
 
 ## Key Conventions
 
 ### TypeScript
 - Strict mode enabled, no `any` types (use `unknown` or proper types)
-- ESM modules (`"type": "module"` in package.json)
+- ESM modules (`"type": "module"` in all packages)
+- Project references via `tsc --build` for cross-package compilation
 
 ### Testing
 - 85% coverage threshold (statements, functions, lines); 75% for branches
 - Snapshot tests: update with `npm test -- -u`, never delete snapshots
-- Test files mirror src structure in `tests/`
+- Test files mirror src structure in each package's `tests/`
 
 ### Naming
 - Variables/functions: camelCase
@@ -84,4 +105,6 @@ npx cdk deploy -c apiGatewaySourceArn=arn:aws:execute-api:REGION:ACCOUNT:API_ID/
 
 - **TELEGRAM_SECRET_ARN**: ARN of Secrets Manager secret containing `botToken` and `webhookSecret`
 - **NODE_ENV**: Set to `production` in Lambda
+- **LAMBDA_WEBHOOK_ZIP_PATH**: Path to webhook Lambda ZIP (CI/CD)
+- **LAMBDA_FEEDBACK_ZIP_PATH**: Path to feedback Lambda ZIP (CI/CD)
 - Local development can use `.env` with `TELEGRAM_BOT_TOKEN` and `TELEGRAM_WEBHOOK_SECRET` fallbacks
