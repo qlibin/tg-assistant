@@ -73,12 +73,14 @@ describe('OrderQueueService', () => {
     expect(input.MessageAttributes!.CorrelationId).toBeUndefined();
   });
 
-  test('defaults priority to normal', async () => {
+  test('defaults priority to normal in both body and attribute', async () => {
     const order = makeOrder();
 
     await service.sendOrder(order);
 
     const input = getSentInput(sendMock);
+    const body = JSON.parse(input.MessageBody!) as SendOrderInput;
+    expect(body.priority).toBe('normal');
     expect(input.MessageAttributes!.Priority).toEqual({
       DataType: 'String',
       StringValue: 'normal',
@@ -87,16 +89,6 @@ describe('OrderQueueService', () => {
 
   test('defaults schemaVersion to 1.0.0 when not provided', async () => {
     const order = makeOrder();
-
-    await service.sendOrder(order);
-
-    const input = getSentInput(sendMock);
-    const body = JSON.parse(input.MessageBody!) as SendOrderInput;
-    expect(body.schemaVersion).toBe('1.0.0');
-  });
-
-  test('preserves existing schemaVersion', async () => {
-    const order = makeOrder({ schemaVersion: '1.0.0' });
 
     await service.sendOrder(order);
 
