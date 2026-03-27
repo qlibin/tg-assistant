@@ -19,8 +19,7 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-    '^.+\\.jsx?$': ['ts-jest', { useESM: false }],
+    '^.+\\.[tj]s$': 'ts-jest',
   },
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
   transformIgnorePatterns: ['node_modules/(?!@qlibin/tg-assistant-contracts)'],
