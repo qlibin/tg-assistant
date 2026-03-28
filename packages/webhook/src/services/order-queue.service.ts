@@ -1,8 +1,6 @@
 import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { SCHEMA_VERSION, type OrderMessage } from '@qlibin/tg-assistant-contracts';
 
-export { SCHEMA_VERSION };
-
 /** OrderMessage with schemaVersion optional — the service defaults it to SCHEMA_VERSION. */
 export type SendOrderInput = Omit<OrderMessage, 'schemaVersion'> & {
   schemaVersion?: typeof SCHEMA_VERSION;
@@ -18,14 +16,17 @@ export class OrderQueueService {
   }
 
   async sendOrder(input: SendOrderInput): Promise<string> {
+    const priority = input.priority ?? 'normal';
+
     const messageBody: OrderMessage = {
       ...input,
+      priority,
       schemaVersion: input.schemaVersion ?? SCHEMA_VERSION,
     };
 
     const messageAttributes: Record<string, { DataType: string; StringValue: string }> = {
       TaskType: { DataType: 'String', StringValue: input.taskType },
-      Priority: { DataType: 'String', StringValue: input.priority ?? 'normal' },
+      Priority: { DataType: 'String', StringValue: priority },
       UserId: { DataType: 'String', StringValue: input.userId },
     };
 
