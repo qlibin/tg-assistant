@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "aws-cdk": "^2.1106.1",
+    "aws-cdk": "^2.1115.0",
     "@eslint/js": "^10.0.0",
     "eslint": "^10.0.0",
     "globals": "^16.0.0",
