@@ -9,6 +9,25 @@ jest.mock('@tg-assistant/common', () => {
   return { ...actual, TelegramService: { sendMessage: jest.fn() } };
 });
 
+jest.mock('@aws-sdk/client-cloudwatch', () => {
+  const mockSend = jest.fn();
+  class PutMetricDataCommand {
+    input: unknown;
+    constructor(input: unknown) {
+      this.input = input;
+    }
+  }
+  return {
+    CloudWatchClient: jest.fn(() => ({ send: mockSend })),
+    PutMetricDataCommand,
+    __mockSend: mockSend,
+  };
+});
+
+const { __mockSend: cloudwatchSend }: { __mockSend: jest.Mock } =
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  jest.requireMock('@aws-sdk/client-cloudwatch');
+
 function makeSqsRecord(body: string, messageId = 'msg-1'): SqsRecord {
   return {
     messageId,
@@ -47,6 +66,7 @@ describe('Feedback Lambda SQS Handler', () => {
     clearTelegramSecretCache();
     process.env.TELEGRAM_WEBHOOK_SECRET = 'TEST_WEBHOOK_SECRET';
     process.env.TELEGRAM_BOT_TOKEN = 'TEST_TOKEN';
+    process.env.ENVIRONMENT = 'test';
     delete process.env.TELEGRAM_SECRET_ARN;
   });
 
@@ -132,6 +152,64 @@ describe('Feedback Lambda SQS Handler', () => {
 
     expect(result.batchItemFailures).toEqual([]);
     expect(sendMock).not.toHaveBeenCalled();
+  });
+
+  it('emits CloudWatch metric on ResultMessage validation failure', async () => {
+    const event: SqsEvent = { Records: [makeSqsRecord('{"invalid": true}')] };
+    await handler(event);
+
+    expect(cloudwatchSend).toHaveBeenCalledTimes(1);
+    expect(cloudwatchSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        input: expect.objectContaining({
+          Namespace: 'tg-assistant',
+          MetricData: [
+            expect.objectContaining({
+              MetricName: 'FeedbackResultValidationFailed',
+              Dimensions: [{ Name: 'Env', Value: 'test' }],
+              Value: 1,
+              Unit: 'Count',
+            }),
+          ],
+        }),
+      })
+    );
+  });
+
+  it('emits one metric per invalid record', async () => {
+    const event: SqsEvent = {
+      Records: [
+        makeSqsRecord('{"invalid": true}', 'msg-1'),
+        makeSqsRecord('{"also": "invalid"}', 'msg-2'),
+      ],
+    };
+    await handler(event);
+
+    expect(cloudwatchSend).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not emit CloudWatch metric for valid records', async () => {
+    jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage();
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    expect(cloudwatchSend).not.toHaveBeenCalled();
+  });
+
+  it('continues processing when CloudWatch metric emission fails', async () => {
+    cloudwatchSend.mockRejectedValueOnce(new Error('CloudWatch error'));
+
+    const event: SqsEvent = { Records: [makeSqsRecord('{"invalid": true}')] };
+    const result = await handler(event);
+
+    // Should not add to batchItemFailures — invalid message shouldn't be retried
+    expect(result.batchItemFailures).toEqual([]);
   });
 
   it('skips records with unparseable JSON without retrying', async () => {

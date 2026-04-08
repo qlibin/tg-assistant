@@ -155,6 +155,13 @@ export class TgAssistantLambdaStack extends Stack {
 
     telegramWebhookSecret.grantRead(feedbackFn);
 
+    feedbackExecRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        actions: ['cloudwatch:PutMetricData'],
+        resources: ['*'],
+      })
+    );
+
     // Import Result Queue from SSM (provisioned by tg-assistant-infra)
     const resultQueueArn = StringParameter.valueForStringParameter(
       this,

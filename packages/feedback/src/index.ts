@@ -1,3 +1,4 @@
+import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
 import {
   SqsEvent,
   SqsBatchResponse,
@@ -9,6 +10,28 @@ import {
   hasConfiguredSecretEnv,
   isProduction,
 } from '@tg-assistant/common';
+
+const cloudwatch = new CloudWatchClient({});
+
+async function emitValidationFailureMetric(): Promise<void> {
+  try {
+    await cloudwatch.send(
+      new PutMetricDataCommand({
+        Namespace: 'tg-assistant',
+        MetricData: [
+          {
+            MetricName: 'FeedbackResultValidationFailed',
+            Dimensions: [{ Name: 'Env', Value: process.env.ENVIRONMENT ?? 'unknown' }],
+            Value: 1,
+            Unit: 'Count',
+          },
+        ],
+      })
+    );
+  } catch (err) {
+    console.error('Failed to emit CloudWatch metric', err);
+  }
+}
 
 const STATUS_EMOJI: Record<Status, string> = {
   success: '\u2705',
@@ -89,6 +112,7 @@ export const handler = async (event: SqsEvent): Promise<SqsBatchResponse> => {
 
       if (!parsed.success) {
         console.error(`Invalid ResultMessage in record ${record.messageId}`);
+        await emitValidationFailureMetric();
         // Invalid messages will never pass validation — don't retry
         continue;
       }
