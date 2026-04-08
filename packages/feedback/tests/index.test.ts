@@ -24,9 +24,9 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
   };
 });
 
-const { __mockSend: cloudwatchSend }: { __mockSend: jest.Mock } =
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  jest.requireMock('@aws-sdk/client-cloudwatch');
+const { __mockSend: cloudwatchSend }: { __mockSend: jest.Mock } = jest.requireMock(
+  '@aws-sdk/client-cloudwatch'
+);
 
 function makeSqsRecord(body: string, messageId = 'msg-1'): SqsRecord {
   return {
