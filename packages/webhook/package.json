@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.1025.0",
-    "@qlibin/tg-assistant-contracts": "^2.0.0",
+    "@qlibin/tg-assistant-contracts": "^2.1.0",
     "@tg-assistant/common": "*"
   }
 }

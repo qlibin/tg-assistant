@@ -44,8 +44,19 @@ export type {
   TaskType,
   OrderMessage,
   ResultMessage,
+  Status,
+  Priority,
+  FollowUpAction,
 } from './types/sqs';
-export { TaskTypeSchema, OrderMessageSchema, ResultMessageSchema } from './types/sqs';
+export {
+  SCHEMA_VERSION,
+  TaskTypeSchema,
+  OrderMessageSchema,
+  ResultMessageSchema,
+  StatusSchema,
+  PrioritySchema,
+  FollowUpActionSchema,
+} from './types/sqs';
 
 // Services
 export { TelegramService } from './services/telegram.service';

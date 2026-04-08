@@ -17,6 +17,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.1019.0",
-    "zod": "^4.3.6"
+    "@qlibin/tg-assistant-contracts": "^2.1.0"
   }
 }

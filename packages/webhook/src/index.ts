@@ -12,6 +12,7 @@ import {
   hasConfiguredSecretEnv,
   isProduction,
 } from '@tg-assistant/common';
+import { OrderQueueService } from './services/order-queue.service';
 
 function sanitizeEventForEcho(event: ApiGatewayProxyEvent): Record<string, unknown> {
   return {
@@ -86,6 +87,60 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
   }
 
   const info = extractMessageInfo(update.message);
+
+  if (/^\/echo(@\S+)?(\s|$)/i.test(info.text)) {
+    const queueUrl = process.env.ORDER_QUEUE_URL;
+    if (!queueUrl) {
+      console.error('Missing ORDER_QUEUE_URL env var — cannot dispatch echo order');
+      await TelegramService.sendMessage({
+        botToken,
+        chatId: info.chatId,
+        text: 'Sorry, something went wrong processing your request',
+      }).catch(() => {
+        console.error('Failed to send apology message');
+      });
+      return ok('Webhook processed (order queue unavailable)');
+    }
+
+    const echoText = info.text.replace(/^\/echo(@\S+)?\s*/i, '');
+
+    try {
+      await TelegramService.sendMessage({
+        botToken,
+        chatId: info.chatId,
+        text: 'Processing your echo request\u2026',
+      });
+    } catch {
+      console.error('Failed to send ack message');
+    }
+
+    const orderQueue = new OrderQueueService(queueUrl);
+    try {
+      await orderQueue.sendOrder({
+        taskType: 'echo',
+        chatId: info.chatId,
+        userId: String(update.message.from?.id ?? 'unknown'),
+        payload: { parameters: { text: echoText } },
+        orderId: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        correlationId: `tg-update-${update.update_id}`,
+        deduplicationId: String(update.update_id),
+      });
+    } catch {
+      console.error('Failed to dispatch echo order to SQS');
+      await TelegramService.sendMessage({
+        botToken,
+        chatId: info.chatId,
+        text: 'Sorry, something went wrong processing your request',
+      }).catch(() => {
+        console.error('Failed to send apology message');
+      });
+      return ok('Webhook processed (order dispatch failed)');
+    }
+
+    return ok('Webhook processed successfully');
+  }
+
   const replyText =
     `Hello ${info.userFirstName}! \u{1F44B}\n\n` +
     `AWS Lambda Event Echo:\n\u0060\u0060\u0060json\n${JSON.stringify(sanitizeEventForEcho(event), null, 2)}\n\u0060\u0060\u0060`;

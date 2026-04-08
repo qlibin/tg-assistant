@@ -23,13 +23,20 @@ function makeSqsRecord(body: string, messageId = 'msg-1'): SqsRecord {
   };
 }
 
+const ORDER_ID_1 = '00000000-0000-0000-0000-000000000001';
+const ORDER_ID_2 = '00000000-0000-0000-0000-000000000002';
+
 function makeResultMessage(overrides?: Partial<ResultMessage>): ResultMessage {
   return {
-    orderId: 'order-1',
+    orderId: ORDER_ID_1,
+    taskType: 'echo',
     status: 'success',
     userId: 'user-1',
     chatId: 123,
     timestamp: '2026-01-01T00:00:00.000Z',
+    result: {},
+    processingTime: 0,
+    schemaVersion: '1.0.0',
     ...overrides,
   };
 }
@@ -74,7 +81,10 @@ describe('Feedback Lambda SQS Handler', () => {
       result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
     });
 
-    const msg = makeResultMessage({ result: { summary: 'Task completed' } });
+    const msg = makeResultMessage({
+      taskType: 'playwright-scraping',
+      result: { summary: 'Task completed' },
+    });
     const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
     await handler(event);
 
@@ -89,8 +99,9 @@ describe('Feedback Lambda SQS Handler', () => {
     });
 
     const msg = makeResultMessage({
+      taskType: 'playwright-scraping',
       status: 'failure',
-      error: { message: 'Timeout exceeded' },
+      result: { metadata: { errorDetails: { message: 'Timeout exceeded' } } },
     });
     const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
     await handler(event);
@@ -150,8 +161,8 @@ describe('Feedback Lambda SQS Handler', () => {
       })
       .mockRejectedValueOnce(new Error('network error'));
 
-    const msg1 = makeResultMessage({ orderId: 'order-1' });
-    const msg2 = makeResultMessage({ orderId: 'order-2', chatId: 456 });
+    const msg1 = makeResultMessage({ orderId: ORDER_ID_1 });
+    const msg2 = makeResultMessage({ orderId: ORDER_ID_2, chatId: 456 });
     const event: SqsEvent = {
       Records: [
         makeSqsRecord(JSON.stringify(msg1), 'msg-1'),
@@ -177,6 +188,118 @@ describe('Feedback Lambda SQS Handler', () => {
     const result = await handler(event);
 
     expect(result.batchItemFailures).toHaveLength(2);
+  });
+
+  it('renders echo text for echo taskType', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({ taskType: 'echo', result: { data: { text: 'hello world' } } });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain('Echo: hello world');
+  });
+
+  it('renders Echo: (no text) when echo result has no text', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({ taskType: 'echo', result: {} });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain('Echo: (no text)');
+  });
+
+  it('renders JSON-stringified errorDetails when no message field', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({
+      taskType: 'playwright-scraping',
+      status: 'failure',
+      result: { metadata: { errorDetails: { code: 500 } } },
+    });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain(JSON.stringify({ code: 500 }));
+  });
+
+  it('renders "Task failed" when no errorDetails on failure', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({
+      taskType: 'playwright-scraping',
+      status: 'failure',
+      result: {},
+    });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain('Task failed');
+  });
+
+  it('renders fallback text for success with no summary and non-echo taskType', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({ taskType: 'playwright-scraping', result: {} });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain(`Task ${ORDER_ID_1} completed (success)`);
+  });
+
+  it('skips Telegram send and does not add to batchItemFailures when chatId is undefined', async () => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage');
+    const consoleSpy = jest.spyOn(console, 'log');
+
+    const msg = makeResultMessage({ chatId: undefined });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    const result = await handler(event);
+
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(result.batchItemFailures).toEqual([]);
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('no chatId'));
+  });
+
+  it.each([
+    ['success', '\u2705'],
+    ['partial', '\u26a0\ufe0f'],
+    ['failure', '\u274c'],
+    ['timeout', '\u23f1'],
+    ['rate-limited', '\ud83d\udea6'],
+    ['cancelled', '\ud83d\udeab'],
+  ] as const)('renders non-empty emoji for status %s', async (status, emoji) => {
+    const sendMock = jest.spyOn(TelegramService, 'sendMessage').mockResolvedValue({
+      ok: true,
+      result: { message_id: 1, chat: { id: 123, type: 'private' }, date: 0 },
+    });
+
+    const msg = makeResultMessage({ status });
+    const event: SqsEvent = { Records: [makeSqsRecord(JSON.stringify(msg))] };
+    await handler(event);
+
+    const callArg = sendMock.mock.calls[0]?.[0] as { text: string };
+    expect(callArg.text).toContain(emoji);
   });
 
   it('fails all records when in production and TELEGRAM_SECRET_ARN is missing', async () => {
