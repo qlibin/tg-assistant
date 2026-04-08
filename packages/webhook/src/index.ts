@@ -126,8 +126,13 @@ export const handler = async (event: ApiGatewayProxyEvent): Promise<ApiGatewayPr
         correlationId: `tg-update-${update.update_id}`,
         deduplicationId: String(update.update_id),
       });
-    } catch {
-      console.error('Failed to dispatch echo order to SQS');
+    } catch (err) {
+      const e = err as { name?: string; message?: string; $metadata?: { httpStatusCode?: number } };
+      console.error('Failed to dispatch echo order to SQS', {
+        name: e.name,
+        message: e.message,
+        httpStatusCode: e.$metadata?.httpStatusCode,
+      });
       await TelegramService.sendMessage({
         botToken,
         chatId: info.chatId,
